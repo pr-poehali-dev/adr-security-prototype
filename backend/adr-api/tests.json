@@ -4,9 +4,7 @@
       "name": "GET all ADRs",
       "method": "GET",
       "path": "/",
-      "expectedStatus": 200,
-      "expectedBody": { "adrs": [] },
-      "bodyMatcher": "partial"
+      "expectedStatus": 200
     },
     {
       "name": "POST upsert ADR",

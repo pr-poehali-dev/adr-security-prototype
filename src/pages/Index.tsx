@@ -3,7 +3,7 @@ import Icon from '@/components/ui/icon';
 
 const LS_DRAFT = 'sentinel_adr_draft';
 const LS_UI = 'sentinel_adr_ui';
-const API_URL = 'https://functions.poehali.dev/d14ff88a-afc1-46b5-b2fd-0719a5ede002';
+const API_URL = import.meta.env.VITE_API_URL ?? 'https://functions.poehali.dev/d14ff88a-afc1-46b5-b2fd-0719a5ede002';
 
 function loadDraft(): ADR | null {
   try {

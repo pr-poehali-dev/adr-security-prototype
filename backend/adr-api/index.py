@@ -3,7 +3,7 @@ import json
 import os
 import psycopg2
 
-SCHEMA = "t_p98037960_adr_security_prototy"
+SCHEMA = os.environ.get("DB_SCHEMA", "t_p98037960_adr_security_prototy")
 
 
 def get_conn():
