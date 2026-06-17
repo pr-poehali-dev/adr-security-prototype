@@ -1,17 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Icon from '@/components/ui/icon';
 
-const LS_RECORDS = 'sentinel_adr_records';
 const LS_DRAFT = 'sentinel_adr_draft';
 const LS_UI = 'sentinel_adr_ui';
-
-function loadRecords(): ADR[] {
-  try {
-    const raw = localStorage.getItem(LS_RECORDS);
-    if (raw) return JSON.parse(raw);
-  } catch (e) { void e; }
-  return SEED;
-}
+const API_URL = 'https://functions.poehali.dev/d14ff88a-afc1-46b5-b2fd-0719a5ede002';
 
 function loadDraft(): ADR | null {
   try {
@@ -243,24 +235,38 @@ function loadUI(): { tab: Tab; selectedId: string; editing: boolean } {
     const raw = localStorage.getItem(LS_UI);
     if (raw) return JSON.parse(raw);
   } catch (e) { void e; }
-  return { tab: 'library', selectedId: loadRecords()[0]?.id ?? '', editing: false };
+  return { tab: 'library', selectedId: '', editing: false };
 }
 
 const Index = () => {
   const savedUI = loadUI();
   const [tab, setTab] = useState<Tab>(savedUI.tab);
-  const [records, setRecords] = useState<ADR[]>(() => loadRecords());
+  const [records, setRecords] = useState<ADR[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string>(savedUI.selectedId);
   const [editing, setEditing] = useState(savedUI.editing);
-  const [draft, setDraft] = useState<ADR>(() => loadDraft() ?? loadRecords()[0] ?? SEED[0]);
+  const [draft, setDraft] = useState<ADR>(() => loadDraft() ?? SEED[0]);
   const [showHistory, setShowHistory] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [appealFilter, setAppealFilter] = useState<AppealType | null>(null);
 
-  useEffect(() => {
-    localStorage.setItem(LS_RECORDS, JSON.stringify(records));
-  }, [records]);
+  const fetchRecords = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(API_URL);
+      const data = await res.json();
+      const adrs: ADR[] = data.adrs ?? [];
+      setRecords(adrs.length ? adrs : SEED);
+      if (!selectedId && adrs.length) setSelectedId(adrs[0].id);
+    } catch {
+      setRecords(SEED);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchRecords(); }, [fetchRecords]);
 
   useEffect(() => {
     localStorage.setItem(LS_UI, JSON.stringify({ tab, selectedId, editing }));
@@ -307,11 +313,12 @@ const Index = () => {
     setTab('editor');
   };
 
-  const saveDraft = () => {
+  const saveDraft = async () => {
     const today = new Date().toISOString().slice(0, 10);
+    let adr: ADR;
     if (draft.id) {
       const rev = `v${draft.versions.length + 1}`;
-      const updated: ADR = {
+      adr = {
         ...draft,
         date: today,
         versions: [
@@ -319,21 +326,24 @@ const Index = () => {
           ...draft.versions,
         ],
       };
-      setRecords((prev) => prev.map((r) => (r.id === draft.id ? updated : r)));
-      setSelectedId(draft.id);
     } else {
       const id = `a${Date.now()}`;
-      const created: ADR = {
+      adr = {
         ...draft,
         id,
         date: today,
         versions: [{ rev: 'v1', date: today, author: draft.author, note: 'Создано' }],
       };
-      setRecords((prev) => [created, ...prev]);
-      setSelectedId(id);
     }
+    await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ adr }),
+    });
+    setSelectedId(adr.id);
     setEditing(false);
     localStorage.removeItem(LS_DRAFT);
+    await fetchRecords();
   };
 
   const TABS = [
@@ -391,8 +401,14 @@ const Index = () => {
       </header>
 
       <main className="max-w-6xl mx-auto px-6 md:px-10 py-10">
+        {loading && (
+          <div className="flex items-center justify-center gap-3 py-24 text-muted-foreground">
+            <Icon name="Loader" size={18} className="animate-spin" />
+            <span className="text-sm">Загрузка записей…</span>
+          </div>
+        )}
         {/* ── Вкладка: Библиотека ── */}
-        {tab === 'library' && (
+        {!loading && tab === 'library' && (
           <div className="animate-fade-up">
             <div className="flex items-center justify-between mb-6">
               <div className="relative">
@@ -521,7 +537,7 @@ const Index = () => {
         )}
 
         {/* ── Вкладка: Редактор ── */}
-        {tab === 'editor' && (
+        {!loading && tab === 'editor' && (
           <div className="animate-fade-up grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-10">
             {/* Mini-list */}
             <aside className="space-y-1.5">

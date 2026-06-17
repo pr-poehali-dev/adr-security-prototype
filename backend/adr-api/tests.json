@@ -1,0 +1,49 @@
+{
+  "tests": [
+    {
+      "name": "GET all ADRs",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": { "adrs": [] },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "POST upsert ADR",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "adr": {
+          "id": "test-001",
+          "number": 999,
+          "title": "Test ADR",
+          "status": "Предложено",
+          "jiraTicket": "ARCH-999",
+          "productName": "Test Product",
+          "appealType": "Консультация",
+          "date": "2026-01-01",
+          "author": "Test",
+          "tags": [],
+          "context": "",
+          "decision": "",
+          "consequences": "",
+          "sectionOrder": ["context", "decision", "consequences"],
+          "sectionLayout": [],
+          "versions": []
+        }
+      },
+      "expectedStatus": 200,
+      "expectedBody": { "ok": true },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "DELETE ADR",
+      "method": "DELETE",
+      "path": "/",
+      "body": { "id": "test-001" },
+      "expectedStatus": 200,
+      "expectedBody": { "ok": true },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
