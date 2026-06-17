@@ -22,6 +22,7 @@ function loadDraft(): ADR | null {
 
 type Status = 'Принято' | 'Предложено' | 'Устарело' | 'Отклонено';
 type Tab = 'library' | 'editor';
+type SectionKey = 'context' | 'decision' | 'consequences';
 type AppealType =
   | 'Консультация'
   | 'Консультация с согласованием'
@@ -67,6 +68,7 @@ interface ADR {
   context: string;
   decision: string;
   consequences: string;
+  sectionOrder: SectionKey[];
   versions: Version[];
 }
 
@@ -84,6 +86,8 @@ const STATUS_STYLES: Record<Status, string> = {
   'Отклонено': 'bg-destructive/10 text-destructive border-destructive/30',
 };
 
+const ALL_SECTIONS: SectionKey[] = ['context', 'decision', 'consequences'];
+
 const SEED: ADR[] = [
   {
     id: 'a1',
@@ -100,6 +104,7 @@ const SEED: ADR[] = [
       'Внедрить HashiCorp Vault как централизованное хранилище секретов. Доступ выдаётся по short-lived токенам через AppRole. Ротация ключей — раз в 30 дней.',
     consequences:
       'Снижается риск утечки. Требуется поддержка Vault-кластера и обучение команды. Добавляется зависимость на доступность Vault при старте сервисов.',
+    sectionOrder: ['context', 'decision', 'consequences'],
     versions: [
       { rev: 'v3', date: '2026-05-30', author: 'А. Соколова', note: 'Статус → Принято, утверждено AppSec' },
       { rev: 'v2', date: '2026-05-22', author: 'Д. Орлов', note: 'Добавлена политика ротации 30 дней' },
@@ -121,6 +126,7 @@ const SEED: ADR[] = [
       'Включить mutual TLS через service mesh (Istio). Сертификаты выдаёт внутренний CA с автоматической ротацией каждые 24 часа.',
     consequences:
       'Шифрование и взаимная аутентификация всех сервисов. Рост накладных расходов на CPU ~5%. Усложняется отладка сетевого трафика.',
+    sectionOrder: ['context', 'decision', 'consequences'],
     versions: [
       { rev: 'v2', date: '2026-05-24', author: 'Д. Орлов', note: 'Уточнён выбор Istio' },
       { rev: 'v1', date: '2026-05-20', author: 'Д. Орлов', note: 'Первичное предложение' },
@@ -141,6 +147,7 @@ const SEED: ADR[] = [
       'Перейти на opaque-токены с проверкой через интроспекцию на стороне Auth-сервиса.',
     consequences:
       'Возможность мгновенного отзыва. Дополнительный round-trip на каждый запрос. Решение заменено ADR-014 о гибридной схеме.',
+    sectionOrder: ['context', 'decision', 'consequences'],
     versions: [
       { rev: 'v1', date: '2026-03-11', author: 'А. Соколова', note: 'Принято, позже помечено устаревшим' },
     ],
@@ -159,6 +166,7 @@ const EMPTY_DRAFT: ADR = {
   context: '',
   decision: '',
   consequences: '',
+  sectionOrder: ['context', 'decision', 'consequences'],
   versions: [],
 };
 
@@ -533,9 +541,15 @@ const Index = () => {
                   )}
 
                   <div className="space-y-9 max-w-2xl">
-                    <Block title="Контекст" icon="Compass" text={selected.context} />
-                    <Block title="Решение" icon="GitCommit" text={selected.decision} accent />
-                    <Block title="Последствия" icon="GitBranch" text={selected.consequences} />
+                    {(selected.sectionOrder ?? ALL_SECTIONS).filter((k) => selected[k]?.trim()).map((key) => {
+                      const meta: Record<SectionKey, { title: string; icon: string; accent?: boolean }> = {
+                        context: { title: 'Контекст', icon: 'Compass' },
+                        decision: { title: 'Решение', icon: 'GitCommit', accent: true },
+                        consequences: { title: 'Последствия', icon: 'GitBranch' },
+                      };
+                      const m = meta[key];
+                      return <Block key={key} title={m.title} icon={m.icon} text={selected[key]} accent={m.accent} />;
+                    })}
                   </div>
                 </article>
               ) : (
@@ -584,15 +598,11 @@ const IconBtn = ({
   </button>
 );
 
-type SectionKey = 'context' | 'decision' | 'consequences';
-
 const SECTION_META: Record<SectionKey, { label: string; placeholder: string }> = {
   context: { label: 'Контекст', placeholder: 'Какую проблему решаем? Что происходит сейчас?' },
   decision: { label: 'Решение', placeholder: 'Что именно решили сделать и почему?' },
   consequences: { label: 'Последствия', placeholder: 'Какие плюсы, минусы и риски у решения?' },
 };
-
-const ALL_SECTIONS: SectionKey[] = ['context', 'decision', 'consequences'];
 
 const Editor = ({
   draft, setDraft, onSave, onCancel,
@@ -602,24 +612,33 @@ const Editor = ({
   const statuses: Status[] = ['Предложено', 'Принято', 'Отклонено', 'Устарело'];
   const field = (k: keyof ADR, v: string) => setDraft({ ...draft, [k]: v });
 
-  const [sections, setSections] = useState<SectionKey[]>(ALL_SECTIONS);
+  const [sections, setSections] = useState<SectionKey[]>(
+    () => draft.sectionOrder ?? ALL_SECTIONS,
+  );
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [overIdx, setOverIdx] = useState<number | null>(null);
+
+  const updateSections = (next: SectionKey[]) => {
+    setSections(next);
+    setDraft({ ...draft, sectionOrder: next });
+  };
 
   const moveSection = (from: number, to: number) => {
     const next = [...sections];
     const [item] = next.splice(from, 1);
     next.splice(to, 0, item);
-    setSections(next);
+    updateSections(next);
   };
 
   const removeSection = (key: SectionKey) => {
-    setSections((prev) => prev.filter((s) => s !== key));
-    field(key, '');
+    const next = sections.filter((s) => s !== key);
+    setSections(next);
+    setDraft({ ...draft, sectionOrder: next, [key]: '' });
   };
 
   const addSection = (key: SectionKey) => {
-    setSections((prev) => [...prev, key]);
+    const next = [...sections, key];
+    updateSections(next);
   };
 
   const hidden = ALL_SECTIONS.filter((s) => !sections.includes(s));
