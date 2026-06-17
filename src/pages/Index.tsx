@@ -584,6 +584,16 @@ const IconBtn = ({
   </button>
 );
 
+type SectionKey = 'context' | 'decision' | 'consequences';
+
+const SECTION_META: Record<SectionKey, { label: string; placeholder: string }> = {
+  context: { label: 'Контекст', placeholder: 'Какую проблему решаем? Что происходит сейчас?' },
+  decision: { label: 'Решение', placeholder: 'Что именно решили сделать и почему?' },
+  consequences: { label: 'Последствия', placeholder: 'Какие плюсы, минусы и риски у решения?' },
+};
+
+const ALL_SECTIONS: SectionKey[] = ['context', 'decision', 'consequences'];
+
 const Editor = ({
   draft, setDraft, onSave, onCancel,
 }: {
@@ -591,6 +601,28 @@ const Editor = ({
 }) => {
   const statuses: Status[] = ['Предложено', 'Принято', 'Отклонено', 'Устарело'];
   const field = (k: keyof ADR, v: string) => setDraft({ ...draft, [k]: v });
+
+  const [sections, setSections] = useState<SectionKey[]>(ALL_SECTIONS);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [overIdx, setOverIdx] = useState<number | null>(null);
+
+  const moveSection = (from: number, to: number) => {
+    const next = [...sections];
+    const [item] = next.splice(from, 1);
+    next.splice(to, 0, item);
+    setSections(next);
+  };
+
+  const removeSection = (key: SectionKey) => {
+    setSections((prev) => prev.filter((s) => s !== key));
+    field(key, '');
+  };
+
+  const addSection = (key: SectionKey) => {
+    setSections((prev) => [...prev, key]);
+  };
+
+  const hidden = ALL_SECTIONS.filter((s) => !sections.includes(s));
 
   return (
     <div className="animate-fade-up max-w-2xl">
@@ -664,9 +696,74 @@ const Editor = ({
           </div>
         </div>
 
-        <EditBlock label="Контекст" placeholder="Какую проблему решаем? Что происходит сейчас?" value={draft.context} onChange={(v) => field('context', v)} />
-        <EditBlock label="Решение" placeholder="Что именно решили сделать и почему?" value={draft.decision} onChange={(v) => field('decision', v)} />
-        <EditBlock label="Последствия" placeholder="Какие плюсы, минусы и риски у решения?" value={draft.consequences} onChange={(v) => field('consequences', v)} />
+        {/* Draggable sections */}
+        <div className="space-y-4">
+          {sections.map((key, idx) => {
+            const meta = SECTION_META[key];
+            const isOver = overIdx === idx && dragIdx !== null && dragIdx !== idx;
+            return (
+              <div
+                key={key}
+                draggable
+                onDragStart={() => { setDragIdx(idx); }}
+                onDragEnd={() => {
+                  if (dragIdx !== null && overIdx !== null && dragIdx !== overIdx) {
+                    moveSection(dragIdx, overIdx);
+                  }
+                  setDragIdx(null);
+                  setOverIdx(null);
+                }}
+                onDragOver={(e) => { e.preventDefault(); setOverIdx(idx); }}
+                onDragLeave={() => setOverIdx(null)}
+                className={`rounded-xl border transition-all ${
+                  isOver ? 'border-accent/60 bg-accent/5' : 'border-border bg-card'
+                } ${dragIdx === idx ? 'opacity-40' : ''}`}
+              >
+                <div className="flex items-center gap-2 px-4 pt-3 pb-2 border-b border-border/60">
+                  <span
+                    className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors"
+                    title="Перетащить"
+                  >
+                    <Icon name="GripVertical" size={15} />
+                  </span>
+                  <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground flex-1">
+                    {meta.label}
+                  </span>
+                  <button
+                    onClick={() => removeSection(key)}
+                    title="Удалить раздел"
+                    className="text-muted-foreground hover:text-destructive transition-colors"
+                  >
+                    <Icon name="X" size={14} />
+                  </button>
+                </div>
+                <textarea
+                  value={draft[key]}
+                  onChange={(e) => field(key, e.target.value)}
+                  placeholder={meta.placeholder}
+                  rows={3}
+                  className="w-full bg-transparent px-4 py-3 text-[15px] leading-relaxed outline-none resize-none"
+                />
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Restore hidden sections */}
+        {hidden.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Добавить:</span>
+            {hidden.map((key) => (
+              <button
+                key={key}
+                onClick={() => addSection(key)}
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-dashed border-border text-muted-foreground hover:border-accent hover:text-accent transition-all"
+              >
+                <Icon name="Plus" size={12} /> {SECTION_META[key].label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
