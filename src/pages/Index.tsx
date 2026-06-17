@@ -821,24 +821,25 @@ const FIXED_SECTION_LABELS: Record<SectionKey, string> = {
   consequences: 'Последствия',
 };
 
-const MD_COLOR_QUOTE: Record<SectionColor, string> = {
+const COLOR_HEX: Record<SectionColor, string> = {
   default: '',
-  blue:   '> 🔵 ',
-  green:  '> 🟢 ',
-  amber:  '> 🟡 ',
-  red:    '> 🔴 ',
-  purple: '> 🟣 ',
-  pink:   '> 🩷 ',
+  blue:    '#3B82F6',
+  green:   '#22C55E',
+  amber:   '#F59E0B',
+  red:     '#EF4444',
+  purple:  '#A855F7',
+  pink:    '#EC4899',
 };
+
 
 const JIRA_COLOR_PANEL: Record<SectionColor, string> = {
   default: '',
-  blue:    'blue',
-  green:   'green',
-  amber:   'yellow',
-  red:     'red',
-  purple:  'purple',
-  pink:    'red',
+  blue:    '#3B82F6',
+  green:   '#22C55E',
+  amber:   '#F59E0B',
+  red:     '#EF4444',
+  purple:  '#A855F7',
+  pink:    '#EC4899',
 };
 
 function adrToMarkdown(adr: ADR, layout: AnySection[]): string {
@@ -856,35 +857,31 @@ function adrToMarkdown(adr: ADR, layout: AnySection[]): string {
   if (adr.tags.length) meta.push(`| Теги | ${adr.tags.map((t) => `\`#${t}\``).join(', ')} |`);
   meta.push('');
 
+  const wrapMdColor = (hex: string, text: string) =>
+    hex ? `<span style="color:${hex}">${text}</span>` : text;
+
   const sections: string[] = [];
   for (const item of layout) {
     const color: SectionColor = item.color ?? 'default';
-    const prefix = MD_COLOR_QUOTE[color];
+    const hex = COLOR_HEX[color];
 
     if (item.kind === 'fixed') {
       const text = adr[item.key]?.trim();
       if (!text) continue;
       const label = FIXED_SECTION_LABELS[item.key];
       sections.push(`## ${label}\n`);
-      if (prefix) {
-        sections.push(text.split('\n').map((l) => `${prefix}${l}`).join('\n'));
-      } else {
-        sections.push(text);
-      }
+      sections.push(hex ? wrapMdColor(hex, text) : text);
       sections.push('');
     } else {
       const d = item.data;
       if (d.type === 'text') {
         if (!d.content?.trim()) continue;
         sections.push(`## ${d.label}\n`);
-        if (prefix) {
-          sections.push(d.content.trim().split('\n').map((l) => `${prefix}${l}`).join('\n'));
-        } else {
-          sections.push(d.content.trim());
-        }
+        sections.push(hex ? wrapMdColor(hex, d.content.trim()) : d.content.trim());
         sections.push('');
       } else if (d.type === 'table') {
         sections.push(`## ${d.label}\n`);
+        if (hex) sections.push(`<!-- color:${hex} -->`);
         sections.push(`| ${d.columns.join(' | ')} |`);
         sections.push(`| ${d.columns.map(() => '---').join(' | ')} |`);
         for (const row of d.rows) {
@@ -894,6 +891,7 @@ function adrToMarkdown(adr: ADR, layout: AnySection[]): string {
       } else if (d.type === 'links') {
         if (!d.links.length) continue;
         sections.push(`## ${d.label}\n`);
+        if (hex) sections.push(`<!-- color:${hex} -->`);
         for (const link of d.links.filter((l) => l.url)) {
           sections.push(`- [${link.title || link.url}](${link.url})`);
         }
@@ -926,7 +924,7 @@ function adrToJiraMarkdown(adr: ADR, layout: AnySection[]): string {
 
     const wrapPanel = (label: string, content: string) => {
       if (panelColor) {
-        return `{panel:title=${label}|borderColor=${panelColor}|titleBGColor=${panelColor}|bgColor=white}\n${content}\n{panel}`;
+        return `{panel:title=${label}|borderColor=${panelColor}|titleBGColor=${panelColor}|bgColor=white}\n{color:${panelColor}}${content}{color}\n{panel}`;
       }
       return `h2. ${label}\n\n${content}`;
     };
