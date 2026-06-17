@@ -22,6 +22,31 @@ function loadDraft(): ADR | null {
 
 type Status = 'Принято' | 'Предложено' | 'Устарело' | 'Отклонено';
 type Tab = 'library' | 'editor';
+type AppealType =
+  | 'Консультация'
+  | 'Консультация с согласованием'
+  | 'Выход в прод нового продукта'
+  | 'Выход в прод нового функционала'
+  | 'Согласование сетевого доступа'
+  | 'Другое';
+
+const APPEAL_TYPES: AppealType[] = [
+  'Консультация',
+  'Консультация с согласованием',
+  'Выход в прод нового продукта',
+  'Выход в прод нового функционала',
+  'Согласование сетевого доступа',
+  'Другое',
+];
+
+const APPEAL_ICONS: Record<AppealType, string> = {
+  'Консультация': 'MessageCircle',
+  'Консультация с согласованием': 'MessageCircleCheck',
+  'Выход в прод нового продукта': 'Rocket',
+  'Выход в прод нового функционала': 'GitMerge',
+  'Согласование сетевого доступа': 'Network',
+  'Другое': 'CircleDot',
+};
 
 interface Version {
   rev: string;
@@ -35,6 +60,7 @@ interface ADR {
   number: number;
   title: string;
   status: Status;
+  appealType: AppealType;
   date: string;
   author: string;
   tags: string[];
@@ -64,6 +90,7 @@ const SEED: ADR[] = [
     number: 12,
     title: 'Хранение секретов в HashiCorp Vault',
     status: 'Принято',
+    appealType: 'Консультация с согласованием',
     date: '2026-05-30',
     author: 'А. Соколова',
     tags: ['secrets', 'infra'],
@@ -84,6 +111,7 @@ const SEED: ADR[] = [
     number: 11,
     title: 'mTLS между внутренними сервисами',
     status: 'Предложено',
+    appealType: 'Согласование сетевого доступа',
     date: '2026-05-24',
     author: 'Д. Орлов',
     tags: ['network', 'zero-trust'],
@@ -103,6 +131,7 @@ const SEED: ADR[] = [
     number: 9,
     title: 'Отказ от JWT в пользу opaque-токенов',
     status: 'Устарело',
+    appealType: 'Консультация',
     date: '2026-03-11',
     author: 'А. Соколова',
     tags: ['auth', 'api'],
@@ -123,6 +152,7 @@ const EMPTY_DRAFT: ADR = {
   number: 0,
   title: '',
   status: 'Предложено',
+  appealType: 'Консультация',
   date: new Date().toISOString().slice(0, 10),
   author: '—',
   tags: [],
@@ -293,8 +323,9 @@ const Index = () => {
 
             {/* Table-style list */}
             <div className="rounded-xl border border-border overflow-hidden">
-              <div className="grid grid-cols-[1fr_auto_140px_120px_60px_90px] text-[11px] uppercase tracking-[0.18em] text-muted-foreground bg-muted/40 px-5 py-3 border-b border-border">
+              <div className="grid grid-cols-[1fr_180px_auto_140px_120px_60px_90px] text-[11px] uppercase tracking-[0.18em] text-muted-foreground bg-muted/40 px-5 py-3 border-b border-border">
                 <span>Название</span>
+                <span>Тип обращения</span>
                 <span className="pr-8">Автор</span>
                 <span>Теги</span>
                 <span>Дата</span>
@@ -312,7 +343,7 @@ const Index = () => {
                   key={r.id}
                   onClick={() => openRecord(r)}
                   style={{ animationDelay: `${i * 30}ms` }}
-                  className="animate-fade-up w-full text-left grid grid-cols-[1fr_auto_140px_120px_60px_90px] items-center px-5 py-4 border-b border-border/60 last:border-0 hover:bg-card/80 transition-colors group"
+                  className="animate-fade-up w-full text-left grid grid-cols-[1fr_180px_auto_140px_120px_60px_90px] items-center px-5 py-4 border-b border-border/60 last:border-0 hover:bg-card/80 transition-colors group"
                 >
                   <div>
                     <div className="text-sm font-medium group-hover:text-accent transition-colors leading-snug">
@@ -321,6 +352,10 @@ const Index = () => {
                     <div className="font-mono text-[11px] text-muted-foreground mt-0.5">
                       ADR-ARHSEC-{String(r.number).padStart(3, '0')}
                     </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Icon name={APPEAL_ICONS[r.appealType]} size={13} className="shrink-0" />
+                    <span className="leading-tight">{r.appealType}</span>
                   </div>
                   <div className="text-sm text-muted-foreground pr-8">{r.author}</div>
                   <div className="flex gap-1 flex-wrap">
@@ -405,6 +440,10 @@ const Index = () => {
                         </span>
                         <span className={`text-xs px-2.5 py-0.5 rounded-full border ${STATUS_STYLES[selected.status]}`}>
                           {selected.status}
+                        </span>
+                        <span className="flex items-center gap-1.5 text-xs px-2.5 py-0.5 rounded-full border border-border bg-muted text-muted-foreground">
+                          <Icon name={APPEAL_ICONS[selected.appealType]} size={12} />
+                          {selected.appealType}
                         </span>
                       </div>
                       <h1 className="font-display text-3xl md:text-4xl tracking-tight leading-[1.1] max-w-2xl">
@@ -557,19 +596,44 @@ const Editor = ({
             className="w-full bg-transparent border-b border-border focus:border-accent outline-none font-display text-2xl tracking-tight py-2 transition-colors"
           />
         </div>
-        <div className="flex gap-2 flex-wrap">
-          {statuses.map((s) => (
-            <button
-              key={s}
-              onClick={() => setDraft({ ...draft, status: s })}
-              className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
-                draft.status === s ? STATUS_STYLES[s] : 'border-border text-muted-foreground hover:bg-secondary'
-              }`}
-            >
-              {s}
-            </button>
-          ))}
+
+        <div>
+          <Label>Тип обращения</Label>
+          <div className="grid grid-cols-2 gap-2">
+            {APPEAL_TYPES.map((t) => (
+              <button
+                key={t}
+                onClick={() => setDraft({ ...draft, appealType: t })}
+                className={`flex items-center gap-2.5 text-left px-3.5 py-2.5 rounded-lg border text-sm transition-all ${
+                  draft.appealType === t
+                    ? 'border-accent/60 bg-accent/10 text-accent'
+                    : 'border-border text-muted-foreground hover:bg-secondary hover:text-foreground'
+                }`}
+              >
+                <Icon name={APPEAL_ICONS[t]} size={15} className="shrink-0" />
+                <span className="leading-tight">{t}</span>
+              </button>
+            ))}
+          </div>
         </div>
+
+        <div>
+          <Label>Статус</Label>
+          <div className="flex gap-2 flex-wrap">
+            {statuses.map((s) => (
+              <button
+                key={s}
+                onClick={() => setDraft({ ...draft, status: s })}
+                className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
+                  draft.status === s ? STATUS_STYLES[s] : 'border-border text-muted-foreground hover:bg-secondary'
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <EditBlock label="Контекст" placeholder="Какую проблему решаем? Что происходит сейчас?" value={draft.context} onChange={(v) => field('context', v)} />
         <EditBlock label="Решение" placeholder="Что именно решили сделать и почему?" value={draft.decision} onChange={(v) => field('decision', v)} />
         <EditBlock label="Последствия" placeholder="Какие плюсы, минусы и риски у решения?" value={draft.consequences} onChange={(v) => field('consequences', v)} />
