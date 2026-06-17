@@ -935,20 +935,23 @@ const Editor = ({
             return (
               <div
                 key={item.kind === 'fixed' ? item.key : item.data.id}
-                draggable
-                onDragStart={() => setDragIdx(idx)}
-                onDragEnd={() => {
-                  if (dragIdx !== null && overIdx !== null && dragIdx !== overIdx) moveItem(dragIdx, overIdx);
+                onDragOver={(e) => { e.preventDefault(); setOverIdx(idx); }}
+                onDragLeave={() => setOverIdx(null)}
+                onDrop={() => {
+                  if (dragIdx !== null && dragIdx !== idx) moveItem(dragIdx, idx);
                   setDragIdx(null);
                   setOverIdx(null);
                 }}
-                onDragOver={(e) => { e.preventDefault(); setOverIdx(idx); }}
-                onDragLeave={() => setOverIdx(null)}
                 className={`rounded-xl border transition-all ${isOver ? 'border-accent/60 bg-accent/5' : 'border-border bg-card'} ${dragIdx === idx ? 'opacity-40' : ''}`}
               >
                 {/* Section header */}
                 <div className="flex items-center gap-2 px-4 pt-3 pb-2 border-b border-border/60">
-                  <span className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors">
+                  <span
+                    draggable
+                    onDragStart={(e) => { e.stopPropagation(); setDragIdx(idx); }}
+                    onDragEnd={() => { setDragIdx(null); setOverIdx(null); }}
+                    className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors"
+                  >
                     <Icon name="GripVertical" size={15} />
                   </span>
                   {item.kind === 'fixed' ? (
