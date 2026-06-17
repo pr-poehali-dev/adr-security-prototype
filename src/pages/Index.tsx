@@ -459,16 +459,16 @@ const Index = () => {
 
             {/* Table-style list */}
             <div className="rounded-xl border border-border overflow-hidden">
-              <div className="grid grid-cols-[1fr_140px_120px_180px_auto_140px_120px_60px_90px] text-[11px] uppercase tracking-[0.18em] text-muted-foreground bg-muted/40 px-5 py-3 border-b border-border">
-                <span>Название</span>
-                <span>Продукт</span>
-                <span>Jira</span>
-                <span>Тип обращения</span>
-                <span className="pr-8">Автор</span>
-                <span>Теги</span>
-                <span>Дата</span>
-                <span>Версия</span>
-                <span>Статус</span>
+              <div className="grid grid-cols-[1fr_140px_120px_180px_auto_140px_120px_60px_90px] text-[11px] uppercase tracking-[0.18em] text-muted-foreground bg-muted/40 border-b border-border divide-x divide-border">
+                <span className="px-4 py-3">Название</span>
+                <span className="px-4 py-3">Продукт</span>
+                <span className="px-4 py-3">Jira</span>
+                <span className="px-4 py-3">Тип обращения</span>
+                <span className="px-4 py-3">Автор</span>
+                <span className="px-4 py-3">Теги</span>
+                <span className="px-4 py-3">Дата</span>
+                <span className="px-4 py-3">Версия</span>
+                <span className="px-4 py-3">Статус</span>
               </div>
               {filtered.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
@@ -481,9 +481,9 @@ const Index = () => {
                   key={r.id}
                   onClick={() => openRecord(r)}
                   style={{ animationDelay: `${i * 30}ms` }}
-                  className="animate-fade-up w-full text-left grid grid-cols-[1fr_140px_120px_180px_auto_140px_120px_60px_90px] items-center px-5 py-4 border-b border-border/60 last:border-0 hover:bg-card/80 transition-colors group"
+                  className="animate-fade-up w-full text-left grid grid-cols-[1fr_140px_120px_180px_auto_140px_120px_60px_90px] items-center border-b border-border/60 last:border-0 hover:bg-card/80 transition-colors group divide-x divide-border/40"
                 >
-                  <div>
+                  <div className="px-4 py-4">
                     <div className="text-sm font-medium group-hover:text-accent transition-colors leading-snug">
                       {r.title}
                     </div>
@@ -491,29 +491,29 @@ const Index = () => {
                       ADR-ARHSEC-{String(r.number).padStart(3, '0')}
                     </div>
                   </div>
-                  <div className="text-xs text-muted-foreground truncate pr-2">
+                  <div className="px-4 py-4 text-xs text-muted-foreground truncate">
                     {r.productName || '—'}
                   </div>
-                  <div className="font-mono text-[11px] text-muted-foreground truncate pr-2">
+                  <div className="px-4 py-4 font-mono text-[11px] text-muted-foreground truncate">
                     {r.jiraTicket || '—'}
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <div className="px-4 py-4 flex items-center gap-1.5 text-xs text-muted-foreground">
                     <Icon name={APPEAL_ICONS[r.appealType]} size={13} className="shrink-0" />
                     <span className="leading-tight">{r.appealType}</span>
                   </div>
-                  <div className="text-sm text-muted-foreground pr-8">{r.author}</div>
-                  <div className="flex gap-1 flex-wrap">
+                  <div className="px-4 py-4 text-sm text-muted-foreground">{r.author}</div>
+                  <div className="px-4 py-4 flex gap-1 flex-wrap">
                     {r.tags.map((t) => (
                       <span key={t} className="font-mono text-[10px] px-2 py-0.5 rounded bg-muted text-muted-foreground">
                         #{t}
                       </span>
                     ))}
                   </div>
-                  <div className="text-sm text-muted-foreground">{r.date}</div>
-                  <div className="font-mono text-xs text-muted-foreground">
+                  <div className="px-4 py-4 text-sm text-muted-foreground">{r.date}</div>
+                  <div className="px-4 py-4 font-mono text-xs text-muted-foreground">
                     {r.versions.length > 0 ? r.versions[0].rev : '—'}
                   </div>
-                  <div>
+                  <div className="px-4 py-4">
                     <span className={`text-[10px] px-2 py-0.5 rounded-full border ${STATUS_STYLES[r.status]}`}>
                       {r.status}
                     </span>
