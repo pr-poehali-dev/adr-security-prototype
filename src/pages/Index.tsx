@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import Icon from '@/components/ui/icon';
 
 type Status = 'Принято' | 'Предложено' | 'Устарело' | 'Отклонено';
+type Tab = 'library' | 'editor';
 
 interface Version {
   rev: string;
@@ -113,6 +114,7 @@ const EMPTY_DRAFT: ADR = {
 };
 
 const Index = () => {
+  const [tab, setTab] = useState<Tab>('library');
   const [records, setRecords] = useState<ADR[]>(SEED);
   const [selectedId, setSelectedId] = useState<string>(SEED[0].id);
   const [editing, setEditing] = useState(false);
@@ -136,6 +138,7 @@ const Index = () => {
     setSelectedId(r.id);
     setEditing(false);
     setShowHistory(false);
+    setTab('editor');
   };
 
   const startEdit = () => {
@@ -149,6 +152,7 @@ const Index = () => {
     setDraft({ ...EMPTY_DRAFT, number: nextNum });
     setEditing(true);
     setSelectedId('');
+    setTab('editor');
   };
 
   const saveDraft = () => {
@@ -179,6 +183,11 @@ const Index = () => {
     setEditing(false);
   };
 
+  const TABS = [
+    { id: 'library' as Tab, label: 'Библиотека ADR', icon: 'BookOpen' },
+    { id: 'editor' as Tab, label: 'Редактор', icon: 'FilePen' },
+  ];
+
   return (
     <div className="min-h-screen grain bg-background text-foreground">
       {/* Header */}
@@ -197,212 +206,268 @@ const Index = () => {
           </div>
           <button
             onClick={startNew}
-            className="group flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-primary/90 transition-all"
+            className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-primary/90 transition-all"
           >
             <Icon name="Plus" size={16} />
             Новый ADR
           </button>
         </div>
+
+        {/* Tabs */}
+        <div className="max-w-6xl mx-auto px-6 md:px-10 flex gap-0">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`flex items-center gap-2 px-5 py-3.5 text-sm font-medium border-b-2 transition-all ${
+                tab === t.id
+                  ? 'border-accent text-accent'
+                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+              }`}
+            >
+              <Icon name={t.icon} size={15} />
+              {t.label}
+              {t.id === 'library' && (
+                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                  {records.length}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-6 md:px-10 py-10 grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-10">
-        {/* Sidebar: list + templates */}
-        <aside className="space-y-8">
-          <div>
-            <div className="relative mb-4">
-              <Icon
-                name="Search"
-                size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-              />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Поиск по записям…"
-                className="w-full bg-card border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm outline-none focus:border-accent transition-colors"
-              />
+      <main className="max-w-6xl mx-auto px-6 md:px-10 py-10">
+        {/* ── Вкладка: Библиотека ── */}
+        {tab === 'library' && (
+          <div className="animate-fade-up">
+            <div className="flex items-center justify-between mb-6">
+              <div className="relative">
+                <Icon
+                  name="Search"
+                  size={16}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Поиск по записям…"
+                  className="w-72 bg-card border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm outline-none focus:border-accent transition-colors"
+                />
+              </div>
+              <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                {filtered.length} решений
+              </div>
             </div>
-            <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-3 px-1">
-              Решения · {filtered.length}
-            </div>
-            <div className="space-y-1.5">
+
+            {/* Table-style list */}
+            <div className="rounded-xl border border-border overflow-hidden">
+              <div className="grid grid-cols-[1fr_auto_140px_120px_90px] text-[11px] uppercase tracking-[0.18em] text-muted-foreground bg-muted/40 px-5 py-3 border-b border-border">
+                <span>Название</span>
+                <span className="pr-8">Автор</span>
+                <span>Теги</span>
+                <span>Дата</span>
+                <span>Статус</span>
+              </div>
+              {filtered.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                  <Icon name="FileSearch" size={28} className="mb-2 opacity-40" />
+                  <p className="text-sm">Ничего не найдено</p>
+                </div>
+              )}
               {filtered.map((r, i) => (
                 <button
                   key={r.id}
                   onClick={() => openRecord(r)}
-                  style={{ animationDelay: `${i * 40}ms` }}
-                  className={`animate-fade-up w-full text-left rounded-lg border p-3.5 transition-all ${
-                    selectedId === r.id
+                  style={{ animationDelay: `${i * 30}ms` }}
+                  className="animate-fade-up w-full text-left grid grid-cols-[1fr_auto_140px_120px_90px] items-center px-5 py-4 border-b border-border/60 last:border-0 hover:bg-card/80 transition-colors group"
+                >
+                  <div>
+                    <div className="text-sm font-medium group-hover:text-accent transition-colors leading-snug">
+                      {r.title}
+                    </div>
+                    <div className="font-mono text-[11px] text-muted-foreground mt-0.5">
+                      ADR-ARHSEC-{String(r.number).padStart(3, '0')}
+                    </div>
+                  </div>
+                  <div className="text-sm text-muted-foreground pr-8">{r.author}</div>
+                  <div className="flex gap-1 flex-wrap">
+                    {r.tags.map((t) => (
+                      <span key={t} className="font-mono text-[10px] px-2 py-0.5 rounded bg-muted text-muted-foreground">
+                        #{t}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="text-sm text-muted-foreground">{r.date}</div>
+                  <div>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full border ${STATUS_STYLES[r.status]}`}>
+                      {r.status}
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {/* Templates section */}
+            <div className="mt-10">
+              <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-4">
+                Шаблоны
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {TEMPLATES.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={startNew}
+                    className="text-left rounded-xl border border-border bg-card p-4 hover:border-accent/50 hover:-translate-y-0.5 transition-all"
+                  >
+                    <Icon name={t.icon} size={20} className="text-accent mb-3" />
+                    <div className="text-sm font-medium leading-tight">{t.name}</div>
+                    <div className="text-[11px] text-muted-foreground mt-1 leading-tight">{t.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Вкладка: Редактор ── */}
+        {tab === 'editor' && (
+          <div className="animate-fade-up grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-10">
+            {/* Mini-list */}
+            <aside className="space-y-1.5">
+              <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-3 px-1">
+                Записи
+              </div>
+              {records.map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => { setSelectedId(r.id); setEditing(false); setShowHistory(false); }}
+                  className={`w-full text-left rounded-lg border p-3 transition-all ${
+                    selectedId === r.id && !editing
                       ? 'border-accent/50 bg-card shadow-sm'
                       : 'border-transparent hover:border-border hover:bg-card/60'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="font-mono text-xs text-muted-foreground">
-                      ADR-ARHSEC-{String(r.number).padStart(3, '0')}
-                    </span>
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full border ${STATUS_STYLES[r.status]}`}
-                    >
-                      {r.status}
-                    </span>
+                  <div className="font-mono text-[10px] text-muted-foreground mb-1">
+                    ADR-ARHSEC-{String(r.number).padStart(3, '0')}
                   </div>
-                  <div className="text-sm font-medium leading-snug">{r.title}</div>
+                  <div className="text-xs font-medium leading-snug">{r.title}</div>
                 </button>
               ))}
-            </div>
-          </div>
+            </aside>
 
-          <div>
-            <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-3 px-1">
-              Шаблоны
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {TEMPLATES.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={startNew}
-                  className="text-left rounded-lg border border-border bg-card p-3 hover:border-accent/50 hover:-translate-y-0.5 transition-all"
-                >
-                  <Icon name={t.icon} size={18} className="text-accent mb-2" />
-                  <div className="text-xs font-medium leading-tight">{t.name}</div>
-                  <div className="text-[10px] text-muted-foreground mt-0.5 leading-tight">
-                    {t.desc}
+            {/* Detail / Editor */}
+            <section className="min-h-[60vh]">
+              {editing ? (
+                <Editor draft={draft} setDraft={setDraft} onSave={saveDraft} onCancel={() => setEditing(false)} />
+              ) : selected ? (
+                <article key={selected.id} className="animate-fade-up">
+                  <div className="flex items-start justify-between gap-4 mb-8">
+                    <div>
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className="font-mono text-sm text-muted-foreground">
+                          ADR-ARHSEC-{String(selected.number).padStart(3, '0')}
+                        </span>
+                        <span className={`text-xs px-2.5 py-0.5 rounded-full border ${STATUS_STYLES[selected.status]}`}>
+                          {selected.status}
+                        </span>
+                      </div>
+                      <h1 className="font-display text-3xl md:text-4xl tracking-tight leading-[1.1] max-w-2xl">
+                        {selected.title}
+                      </h1>
+                      <div className="flex items-center gap-4 mt-4 text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1.5">
+                          <Icon name="User" size={14} /> {selected.author}
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <Icon name="Calendar" size={14} /> {selected.date}
+                        </span>
+                        {selected.tags.map((t) => (
+                          <span key={t} className="font-mono text-xs">#{t}</span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <IconBtn icon="History" label="История" onClick={() => setShowHistory((v) => !v)} active={showHistory} />
+                      <IconBtn icon="Download" label="Экспорт" onClick={() => {}} />
+                      <button
+                        onClick={startEdit}
+                        className="flex items-center gap-2 bg-secondary text-secondary-foreground px-3.5 py-2 rounded-lg text-sm font-medium hover:bg-secondary/70 transition-colors"
+                      >
+                        <Icon name="Pencil" size={15} /> Редактировать
+                      </button>
+                    </div>
                   </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </aside>
 
-        {/* Detail / Editor */}
-        <section className="min-h-[60vh]">
-          {editing ? (
-            <Editor draft={draft} setDraft={setDraft} onSave={saveDraft} onCancel={() => setEditing(false)} />
-          ) : selected ? (
-            <article key={selected.id} className="animate-fade-up">
-              <div className="flex items-start justify-between gap-4 mb-8">
-                <div>
-                  <div className="flex items-center gap-3 mb-3">
-                    <span className="font-mono text-sm text-muted-foreground">
-                      ADR-ARHSEC-{String(selected.number).padStart(3, '0')}
-                    </span>
-                    <span
-                      className={`text-xs px-2.5 py-0.5 rounded-full border ${STATUS_STYLES[selected.status]}`}
-                    >
-                      {selected.status}
-                    </span>
-                  </div>
-                  <h1 className="font-display text-3xl md:text-4xl tracking-tight leading-[1.1] max-w-2xl">
-                    {selected.title}
-                  </h1>
-                  <div className="flex items-center gap-4 mt-4 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1.5">
-                      <Icon name="User" size={14} /> {selected.author}
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <Icon name="Calendar" size={14} /> {selected.date}
-                    </span>
-                    {selected.tags.map((t) => (
-                      <span key={t} className="font-mono text-xs">#{t}</span>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <IconBtn icon="History" label="История" onClick={() => setShowHistory((v) => !v)} active={showHistory} />
-                  <IconBtn icon="Download" label="Экспорт" onClick={() => {}} />
-                  <button
-                    onClick={startEdit}
-                    className="flex items-center gap-2 bg-secondary text-secondary-foreground px-3.5 py-2 rounded-lg text-sm font-medium hover:bg-secondary/70 transition-colors"
-                  >
-                    <Icon name="Pencil" size={15} /> Редактировать
-                  </button>
-                </div>
-              </div>
+                  {showHistory && (
+                    <div className="animate-fade-up mb-8 rounded-xl border border-border bg-card p-5">
+                      <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-4">
+                        История версий
+                      </div>
+                      <ol className="space-y-0">
+                        {selected.versions.map((v, i) => (
+                          <li key={v.rev} className="flex gap-4 relative pb-5 last:pb-0">
+                            <div className="flex flex-col items-center">
+                              <div className={`w-2.5 h-2.5 rounded-full mt-1.5 ${i === 0 ? 'bg-accent' : 'bg-border'}`} />
+                              {i < selected.versions.length - 1 && (
+                                <div className="w-px flex-1 bg-border my-1" />
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono text-sm font-medium">{v.rev}</span>
+                                <span className="text-xs text-muted-foreground">{v.date}</span>
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {v.note} · {v.author}
+                              </div>
+                            </div>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                  )}
 
-              {showHistory && (
-                <div className="animate-fade-up mb-8 rounded-xl border border-border bg-card p-5">
-                  <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-4">
-                    История версий
+                  <div className="space-y-9 max-w-2xl">
+                    <Block title="Контекст" icon="Compass" text={selected.context} />
+                    <Block title="Решение" icon="GitCommit" text={selected.decision} accent />
+                    <Block title="Последствия" icon="GitBranch" text={selected.consequences} />
                   </div>
-                  <ol className="space-y-0">
-                    {selected.versions.map((v, i) => (
-                      <li key={v.rev} className="flex gap-4 relative pb-5 last:pb-0">
-                        <div className="flex flex-col items-center">
-                          <div className={`w-2.5 h-2.5 rounded-full mt-1.5 ${i === 0 ? 'bg-accent' : 'bg-border'}`} />
-                          {i < selected.versions.length - 1 && (
-                            <div className="w-px flex-1 bg-border my-1" />
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-sm font-medium">{v.rev}</span>
-                            <span className="text-xs text-muted-foreground">{v.date}</span>
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {v.note} · {v.author}
-                          </div>
-                        </div>
-                      </li>
-                    ))}
-                  </ol>
+                </article>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground py-20">
+                  <Icon name="FileText" size={32} className="mb-3 opacity-40" />
+                  <p className="text-sm">Выберите запись или создайте новую</p>
                 </div>
               )}
-
-              <div className="space-y-9 max-w-2xl">
-                <Block title="Контекст" icon="Compass" text={selected.context} />
-                <Block title="Решение" icon="GitCommit" text={selected.decision} accent />
-                <Block title="Последствия" icon="GitBranch" text={selected.consequences} />
-              </div>
-            </article>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
-              <Icon name="FileText" size={32} className="mb-3 opacity-40" />
-              <p className="text-sm">Выберите запись или создайте новую</p>
-            </div>
-          )}
-        </section>
+            </section>
+          </div>
+        )}
       </main>
     </div>
   );
 };
 
 const Block = ({
-  title,
-  icon,
-  text,
-  accent,
+  title, icon, text, accent,
 }: {
-  title: string;
-  icon: string;
-  text: string;
-  accent?: boolean;
+  title: string; icon: string; text: string; accent?: boolean;
 }) => (
   <div>
     <div className="flex items-center gap-2 mb-3">
       <Icon name={icon} size={16} className={accent ? 'text-accent' : 'text-muted-foreground'} />
       <h2 className="font-display text-lg tracking-tight">{title}</h2>
     </div>
-    <p
-      className={`text-[15px] leading-relaxed text-foreground/85 ${
-        accent ? 'border-l-2 border-accent pl-4' : ''
-      }`}
-    >
+    <p className={`text-[15px] leading-relaxed text-foreground/85 ${accent ? 'border-l-2 border-accent pl-4' : ''}`}>
       {text}
     </p>
   </div>
 );
 
 const IconBtn = ({
-  icon,
-  label,
-  onClick,
-  active,
+  icon, label, onClick, active,
 }: {
-  icon: string;
-  label: string;
-  onClick: () => void;
-  active?: boolean;
+  icon: string; label: string; onClick: () => void; active?: boolean;
 }) => (
   <button
     onClick={onClick}
@@ -416,15 +481,9 @@ const IconBtn = ({
 );
 
 const Editor = ({
-  draft,
-  setDraft,
-  onSave,
-  onCancel,
+  draft, setDraft, onSave, onCancel,
 }: {
-  draft: ADR;
-  setDraft: (a: ADR) => void;
-  onSave: () => void;
-  onCancel: () => void;
+  draft: ADR; setDraft: (a: ADR) => void; onSave: () => void; onCancel: () => void;
 }) => {
   const statuses: Status[] = ['Предложено', 'Принято', 'Отклонено', 'Устарело'];
   const field = (k: keyof ADR, v: string) => setDraft({ ...draft, [k]: v });
@@ -463,7 +522,6 @@ const Editor = ({
             className="w-full bg-transparent border-b border-border focus:border-accent outline-none font-display text-2xl tracking-tight py-2 transition-colors"
           />
         </div>
-
         <div className="flex gap-2 flex-wrap">
           {statuses.map((s) => (
             <button
@@ -477,7 +535,6 @@ const Editor = ({
             </button>
           ))}
         </div>
-
         <EditBlock label="Контекст" placeholder="Какую проблему решаем? Что происходит сейчас?" value={draft.context} onChange={(v) => field('context', v)} />
         <EditBlock label="Решение" placeholder="Что именно решили сделать и почему?" value={draft.decision} onChange={(v) => field('decision', v)} />
         <EditBlock label="Последствия" placeholder="Какие плюсы, минусы и риски у решения?" value={draft.consequences} onChange={(v) => field('consequences', v)} />
@@ -491,15 +548,9 @@ const Label = ({ children }: { children: React.ReactNode }) => (
 );
 
 const EditBlock = ({
-  label,
-  placeholder,
-  value,
-  onChange,
+  label, placeholder, value, onChange,
 }: {
-  label: string;
-  placeholder: string;
-  value: string;
-  onChange: (v: string) => void;
+  label: string; placeholder: string; value: string; onChange: (v: string) => void;
 }) => (
   <div>
     <Label>{label}</Label>
