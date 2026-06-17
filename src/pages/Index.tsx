@@ -40,7 +40,20 @@ interface TableSection {
   rows: string[][];
 }
 
-type CustomSection = TextSection | TableSection;
+interface LinkItem {
+  id: string;
+  title: string;
+  url: string;
+}
+
+interface LinksSection {
+  id: string;
+  type: 'links';
+  label: string;
+  links: LinkItem[];
+}
+
+type CustomSection = TextSection | TableSection | LinksSection;
 
 type SectionColor = 'default' | 'blue' | 'green' | 'amber' | 'red' | 'purple' | 'pink';
 
@@ -638,6 +651,31 @@ const Index = () => {
                           </div>
                         );
                       }
+                      if (d.type === 'links') {
+                        if (!d.links.length) return null;
+                        return (
+                          <div key={d.id} className={colorClass}>
+                            <div className="flex items-center gap-2 mb-3">
+                              <Icon name="Link" size={16} className="text-muted-foreground" />
+                              <h2 className="font-display text-lg tracking-tight">{d.label}</h2>
+                            </div>
+                            <div className="flex flex-col gap-2">
+                              {d.links.filter((l) => l.url).map((link) => (
+                                <a
+                                  key={link.id}
+                                  href={link.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-2.5 text-[14px] text-accent hover:underline group"
+                                >
+                                  <Icon name="ExternalLink" size={14} className="shrink-0 text-muted-foreground group-hover:text-accent transition-colors" />
+                                  <span>{link.title || link.url}</span>
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      }
                       return (
                         <div key={d.id} className={colorClass}>
                           <div className="flex items-center gap-2 mb-3">
@@ -723,6 +761,58 @@ const SECTION_META: Record<SectionKey, { label: string; placeholder: string }> =
   context: { label: 'Контекст', placeholder: 'Какую проблему решаем? Что происходит сейчас?' },
   decision: { label: 'Решение', placeholder: 'Что именно решили сделать и почему?' },
   consequences: { label: 'Последствия', placeholder: 'Какие плюсы, минусы и риски у решения?' },
+};
+
+const LinksSectionEditor = ({
+  data, onChange,
+}: {
+  data: LinksSection;
+  onChange: (d: LinksSection) => void;
+}) => {
+  const setLink = (id: string, field: 'title' | 'url', value: string) => {
+    onChange({ ...data, links: data.links.map((l) => l.id === id ? { ...l, [field]: value } : l) });
+  };
+  const addLink = () => {
+    onChange({ ...data, links: [...data.links, { id: genId(), title: '', url: '' }] });
+  };
+  const removeLink = (id: string) => {
+    onChange({ ...data, links: data.links.filter((l) => l.id !== id) });
+  };
+
+  return (
+    <div className="space-y-2">
+      {data.links.map((link) => (
+        <div key={link.id} className="flex items-center gap-2 group/link">
+          <div className="flex-1 grid grid-cols-2 gap-2">
+            <input
+              value={link.title}
+              onChange={(e) => setLink(link.id, 'title', e.target.value)}
+              placeholder="Название"
+              className="w-full bg-transparent border border-border rounded-lg px-3 py-1.5 text-sm outline-none focus:border-accent transition-colors"
+            />
+            <input
+              value={link.url}
+              onChange={(e) => setLink(link.id, 'url', e.target.value)}
+              placeholder="https://…"
+              className="w-full bg-transparent border border-border rounded-lg px-3 py-1.5 text-sm outline-none focus:border-accent transition-colors font-mono"
+            />
+          </div>
+          <button
+            onClick={() => removeLink(link.id)}
+            className="opacity-0 group-hover/link:opacity-100 text-muted-foreground hover:text-destructive transition-all shrink-0"
+          >
+            <Icon name="X" size={14} />
+          </button>
+        </div>
+      ))}
+      <button
+        onClick={addLink}
+        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-accent transition-colors mt-1"
+      >
+        <Icon name="Plus" size={12} /> Добавить ссылку
+      </button>
+    </div>
+  );
 };
 
 const TableSectionEditor = ({
@@ -896,11 +986,13 @@ const Editor = ({
     setAddMenuOpen(false);
   };
 
-  const addCustomSection = (type: 'text' | 'table') => {
+  const addCustomSection = (type: 'text' | 'table' | 'links') => {
     const id = genId();
     const data: CustomSection = type === 'text'
       ? { id, type: 'text', label: 'Новый раздел', content: '' }
-      : { id, type: 'table', label: 'Новая таблица', columns: ['Столбец 1', 'Столбец 2'], rows: [['', ''], ['', '']] };
+      : type === 'table'
+      ? { id, type: 'table', label: 'Новая таблица', columns: ['Столбец 1', 'Столбец 2'], rows: [['', ''], ['', '']] }
+      : { id, type: 'links', label: 'Ссылки', links: [{ id: genId(), title: '', url: '' }] };
     syncLayout([...layout, { kind: 'custom', data }]);
     setAddMenuOpen(false);
   };
@@ -1022,7 +1114,7 @@ const Editor = ({
                   )}
                   {item.kind === 'custom' && (
                     <span className="text-[10px] px-2 py-0.5 rounded border border-border text-muted-foreground">
-                      {item.data.type === 'text' ? 'Текст' : 'Таблица'}
+                      {item.data.type === 'text' ? 'Текст' : item.data.type === 'table' ? 'Таблица' : 'Ссылки'}
                     </span>
                   )}
                   {/* Color picker */}
@@ -1069,9 +1161,16 @@ const Editor = ({
                     rows={3}
                     className="w-full bg-transparent px-4 py-3 text-[15px] leading-relaxed outline-none resize-none"
                   />
-                ) : (
+                ) : item.data.type === 'table' ? (
                   <div className="px-4 py-3">
                     <TableSectionEditor
+                      data={item.data}
+                      onChange={(d) => updateCustom(idx, d)}
+                    />
+                  </div>
+                ) : (
+                  <div className="px-4 py-3">
+                    <LinksSectionEditor
                       data={item.data}
                       onChange={(d) => updateCustom(idx, d)}
                     />
@@ -1114,6 +1213,12 @@ const Editor = ({
                     className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-secondary transition-colors border-t border-border"
                   >
                     <Icon name="Table" size={15} /> Табличный
+                  </button>
+                  <button
+                    onClick={() => addCustomSection('links')}
+                    className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-secondary transition-colors border-t border-border"
+                  >
+                    <Icon name="Link" size={15} /> Ссылки
                   </button>
                 </div>
               )}
