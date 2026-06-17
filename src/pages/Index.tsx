@@ -609,7 +609,10 @@ const Index = () => {
                             <button
                               onClick={() => {
                                 const layout = selected.sectionLayout ?? makeLayout(selected.sectionOrder ?? ALL_SECTIONS);
-                                downloadText(adrToMarkdown(selected, layout), `${selected.id || 'adr'}.md`);
+                                const adrId = `ADR-ARHSEC-${String(selected.number).padStart(3, '0')}`;
+                                const rev = selected.versions?.at(-1)?.rev ?? `v${selected.versions?.length ?? 1}`;
+                                const slug = selected.title.replace(/[^a-zA-Zа-яА-Я0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40);
+                                downloadText(adrToMarkdown(selected, layout), `${adrId}_${slug}_${rev}.md`);
                                 setExportOpen(false);
                               }}
                               className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-secondary transition-colors"
@@ -619,7 +622,10 @@ const Index = () => {
                             <button
                               onClick={() => {
                                 const layout = selected.sectionLayout ?? makeLayout(selected.sectionOrder ?? ALL_SECTIONS);
-                                downloadText(adrToJiraMarkdown(selected, layout), `${selected.id || 'adr'}-jira.txt`);
+                                const adrId = `ADR-ARHSEC-${String(selected.number).padStart(3, '0')}`;
+                                const rev = selected.versions?.at(-1)?.rev ?? `v${selected.versions?.length ?? 1}`;
+                                const slug = selected.title.replace(/[^a-zA-Zа-яА-Я0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40);
+                                downloadText(adrToJiraMarkdown(selected, layout), `${adrId}_${slug}_${rev}-jira.txt`);
                                 setExportOpen(false);
                               }}
                               className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-secondary transition-colors border-t border-border"
