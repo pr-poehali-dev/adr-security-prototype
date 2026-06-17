@@ -106,6 +106,8 @@ interface ADR {
   number: number;
   title: string;
   status: Status;
+  jiraTicket: string;
+  productName: string;
   appealType: AppealType;
   date: string;
   author: string;
@@ -222,6 +224,8 @@ const EMPTY_DRAFT: ADR = {
   number: 0,
   title: '',
   status: 'Предложено',
+  jiraTicket: '',
+  productName: '',
   appealType: 'Консультация',
   date: new Date().toISOString().slice(0, 10),
   author: '—',
@@ -564,6 +568,18 @@ const Index = () => {
                           <Icon name={APPEAL_ICONS[selected.appealType]} size={12} />
                           {selected.appealType}
                         </span>
+                        {selected.jiraTicket && (
+                          <span className="flex items-center gap-1.5 text-xs px-2.5 py-0.5 rounded-full border border-border bg-muted font-mono text-muted-foreground">
+                            <Icon name="Ticket" size={12} />
+                            {selected.jiraTicket}
+                          </span>
+                        )}
+                        {selected.productName && (
+                          <span className="flex items-center gap-1.5 text-xs px-2.5 py-0.5 rounded-full border border-border bg-muted text-muted-foreground">
+                            <Icon name="Box" size={12} />
+                            {selected.productName}
+                          </span>
+                        )}
                       </div>
                       <h1 className="font-display text-3xl md:text-4xl tracking-tight leading-[1.1] max-w-2xl">
                         {selected.title}
@@ -1031,6 +1047,27 @@ const Editor = ({
             placeholder="Например: Внедрение mTLS между сервисами"
             className="w-full bg-transparent border-b border-border focus:border-accent outline-none font-display text-2xl tracking-tight py-2 transition-colors"
           />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label>Jira-заявка</Label>
+            <input
+              value={draft.jiraTicket}
+              onChange={(e) => field('jiraTicket', e.target.value)}
+              placeholder="ARCH-1234"
+              className="w-full bg-transparent border border-border rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-accent transition-colors"
+            />
+          </div>
+          <div>
+            <Label>Продукт</Label>
+            <input
+              value={draft.productName}
+              onChange={(e) => field('productName', e.target.value)}
+              placeholder="Название продукта"
+              className="w-full bg-transparent border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent transition-colors"
+            />
+          </div>
         </div>
 
         <div>
