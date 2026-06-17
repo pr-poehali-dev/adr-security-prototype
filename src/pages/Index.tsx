@@ -42,7 +42,19 @@ interface TableSection {
 
 type CustomSection = TextSection | TableSection;
 
-type AnySection = { kind: 'fixed'; key: SectionKey } | { kind: 'custom'; data: CustomSection };
+type SectionColor = 'default' | 'blue' | 'green' | 'amber' | 'red' | 'purple' | 'pink';
+
+type AnySection = { kind: 'fixed'; key: SectionKey; color?: SectionColor } | { kind: 'custom'; data: CustomSection; color?: SectionColor };
+
+const SECTION_COLORS: { id: SectionColor; label: string; border: string; bg: string; dot: string }[] = [
+  { id: 'default', label: 'Нет', border: 'border-border', bg: 'bg-card', dot: 'bg-muted-foreground' },
+  { id: 'blue',    label: 'Синий',   border: 'border-blue-500/40',   bg: 'bg-blue-500/5',   dot: 'bg-blue-500' },
+  { id: 'green',   label: 'Зелёный', border: 'border-green-500/40',  bg: 'bg-green-500/5',  dot: 'bg-green-500' },
+  { id: 'amber',   label: 'Жёлтый',  border: 'border-amber-500/40',  bg: 'bg-amber-500/5',  dot: 'bg-amber-500' },
+  { id: 'red',     label: 'Красный', border: 'border-red-500/40',    bg: 'bg-red-500/5',    dot: 'bg-red-500' },
+  { id: 'purple',  label: 'Фиолет.', border: 'border-purple-500/40', bg: 'bg-purple-500/5', dot: 'bg-purple-500' },
+  { id: 'pink',    label: 'Розовый', border: 'border-pink-500/40',   bg: 'bg-pink-500/5',   dot: 'bg-pink-500' },
+];
 type AppealType =
   | 'Консультация'
   | 'Консультация с согласованием'
@@ -598,6 +610,11 @@ const Index = () => {
 
                   <div className="space-y-9 max-w-2xl">
                     {(selected.sectionLayout ?? makeLayout(selected.sectionOrder ?? ALL_SECTIONS)).map((item) => {
+                      const colorMeta = SECTION_COLORS.find((c) => c.id === (item.color ?? 'default')) ?? SECTION_COLORS[0];
+                      const colorClass = item.color && item.color !== 'default'
+                        ? `rounded-xl border p-5 ${colorMeta.border} ${colorMeta.bg}`
+                        : '';
+
                       if (item.kind === 'fixed') {
                         if (!selected[item.key]?.trim()) return null;
                         const fixedMeta: Record<SectionKey, { title: string; icon: string; accent?: boolean }> = {
@@ -606,15 +623,23 @@ const Index = () => {
                           consequences: { title: 'Последствия', icon: 'GitBranch' },
                         };
                         const m = fixedMeta[item.key];
-                        return <Block key={item.key} title={m.title} icon={m.icon} text={selected[item.key]} accent={m.accent} />;
+                        return (
+                          <div key={item.key} className={colorClass}>
+                            <Block title={m.title} icon={m.icon} text={selected[item.key]} accent={m.accent} />
+                          </div>
+                        );
                       }
                       const d = item.data;
                       if (d.type === 'text') {
                         if (!d.content?.trim()) return null;
-                        return <Block key={d.id} title={d.label} icon="AlignLeft" text={d.content} />;
+                        return (
+                          <div key={d.id} className={colorClass}>
+                            <Block title={d.label} icon="AlignLeft" text={d.content} />
+                          </div>
+                        );
                       }
                       return (
-                        <div key={d.id}>
+                        <div key={d.id} className={colorClass}>
                           <div className="flex items-center gap-2 mb-3">
                             <Icon name="Table" size={16} className="text-muted-foreground" />
                             <h2 className="font-display text-lg tracking-tight">{d.label}</h2>
@@ -826,6 +851,7 @@ const Editor = ({
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [overIdx, setOverIdx] = useState<number | null>(null);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [colorPickerIdx, setColorPickerIdx] = useState<number | null>(null);
 
   const syncLayout = (next: AnySection[]) => {
     setLayout(next);
@@ -855,8 +881,14 @@ const Editor = ({
   };
 
   const updateCustom = (idx: number, data: CustomSection) => {
-    const next = layout.map((s, i) => i === idx ? { kind: 'custom' as const, data } : s);
+    const next = layout.map((s, i) => i === idx ? { kind: 'custom' as const, data, color: s.color } : s);
     syncLayout(next);
+  };
+
+  const setItemColor = (idx: number, color: SectionColor) => {
+    const next = layout.map((s, i) => i === idx ? { ...s, color } : s);
+    syncLayout(next);
+    setColorPickerIdx(null);
   };
 
   const addFixedSection = (key: SectionKey) => {
@@ -954,6 +986,9 @@ const Editor = ({
               ? SECTION_META[item.key].label
               : item.data.label;
 
+            const itemColor = item.color ?? 'default';
+            const colorMeta = SECTION_COLORS.find((c) => c.id === itemColor) ?? SECTION_COLORS[0];
+
             return (
               <div
                 key={item.kind === 'fixed' ? item.key : item.data.id}
@@ -964,7 +999,7 @@ const Editor = ({
                   setDragIdx(null);
                   setOverIdx(null);
                 }}
-                className={`rounded-xl border transition-all ${isOver ? 'border-accent/60 bg-accent/5' : 'border-border bg-card'} ${dragIdx === idx ? 'opacity-40' : ''}`}
+                className={`rounded-xl border transition-all ${isOver ? 'border-accent/60 bg-accent/5' : `${colorMeta.border} ${colorMeta.bg}`} ${dragIdx === idx ? 'opacity-40' : ''}`}
               >
                 {/* Section header */}
                 <div className="flex items-center gap-2 px-4 pt-3 pb-2 border-b border-border/60">
@@ -986,10 +1021,32 @@ const Editor = ({
                     />
                   )}
                   {item.kind === 'custom' && (
-                    <span className="text-[10px] px-2 py-0.5 rounded border border-border text-muted-foreground mr-1">
+                    <span className="text-[10px] px-2 py-0.5 rounded border border-border text-muted-foreground">
                       {item.data.type === 'text' ? 'Текст' : 'Таблица'}
                     </span>
                   )}
+                  {/* Color picker */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setColorPickerIdx(colorPickerIdx === idx ? null : idx)}
+                      title="Цвет раздела"
+                      className="flex items-center justify-center w-5 h-5 rounded-full transition-opacity hover:opacity-70"
+                    >
+                      <span className={`w-3 h-3 rounded-full ${colorMeta.dot}`} />
+                    </button>
+                    {colorPickerIdx === idx && (
+                      <div className="absolute top-full right-0 mt-1 z-30 bg-card border border-border rounded-xl shadow-lg p-2 flex gap-1.5">
+                        {SECTION_COLORS.map((c) => (
+                          <button
+                            key={c.id}
+                            onClick={() => setItemColor(idx, c.id)}
+                            title={c.label}
+                            className={`w-5 h-5 rounded-full ${c.dot} transition-transform hover:scale-110 ${itemColor === c.id ? 'ring-2 ring-offset-1 ring-foreground/30' : ''}`}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <button onClick={() => removeItem(idx)} title="Удалить раздел" className="text-muted-foreground hover:text-destructive transition-colors">
                     <Icon name="X" size={14} />
                   </button>
