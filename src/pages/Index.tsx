@@ -459,8 +459,10 @@ const Index = () => {
 
             {/* Table-style list */}
             <div className="rounded-xl border border-border overflow-hidden">
-              <div className="grid grid-cols-[1fr_180px_auto_140px_120px_60px_90px] text-[11px] uppercase tracking-[0.18em] text-muted-foreground bg-muted/40 px-5 py-3 border-b border-border">
+              <div className="grid grid-cols-[1fr_140px_120px_180px_auto_140px_120px_60px_90px] text-[11px] uppercase tracking-[0.18em] text-muted-foreground bg-muted/40 px-5 py-3 border-b border-border">
                 <span>Название</span>
+                <span>Продукт</span>
+                <span>Jira</span>
                 <span>Тип обращения</span>
                 <span className="pr-8">Автор</span>
                 <span>Теги</span>
@@ -479,7 +481,7 @@ const Index = () => {
                   key={r.id}
                   onClick={() => openRecord(r)}
                   style={{ animationDelay: `${i * 30}ms` }}
-                  className="animate-fade-up w-full text-left grid grid-cols-[1fr_180px_auto_140px_120px_60px_90px] items-center px-5 py-4 border-b border-border/60 last:border-0 hover:bg-card/80 transition-colors group"
+                  className="animate-fade-up w-full text-left grid grid-cols-[1fr_140px_120px_180px_auto_140px_120px_60px_90px] items-center px-5 py-4 border-b border-border/60 last:border-0 hover:bg-card/80 transition-colors group"
                 >
                   <div>
                     <div className="text-sm font-medium group-hover:text-accent transition-colors leading-snug">
@@ -488,6 +490,12 @@ const Index = () => {
                     <div className="font-mono text-[11px] text-muted-foreground mt-0.5">
                       ADR-ARHSEC-{String(r.number).padStart(3, '0')}
                     </div>
+                  </div>
+                  <div className="text-xs text-muted-foreground truncate pr-2">
+                    {r.productName || '—'}
+                  </div>
+                  <div className="font-mono text-[11px] text-muted-foreground truncate pr-2">
+                    {r.jiraTicket || '—'}
                   </div>
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <Icon name={APPEAL_ICONS[r.appealType]} size={13} className="shrink-0" />
