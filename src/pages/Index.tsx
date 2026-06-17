@@ -239,7 +239,7 @@ const Index = () => {
                 >
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="font-mono text-xs text-muted-foreground">
-                      ADR-{String(r.number).padStart(3, '0')}
+                      ADR-ARHSEC-{String(r.number).padStart(3, '0')}
                     </span>
                     <span
                       className={`text-[10px] px-2 py-0.5 rounded-full border ${STATUS_STYLES[r.status]}`}
@@ -285,7 +285,7 @@ const Index = () => {
                 <div>
                   <div className="flex items-center gap-3 mb-3">
                     <span className="font-mono text-sm text-muted-foreground">
-                      ADR-{String(selected.number).padStart(3, '0')}
+                      ADR-ARHSEC-{String(selected.number).padStart(3, '0')}
                     </span>
                     <span
                       className={`text-xs px-2.5 py-0.5 rounded-full border ${STATUS_STYLES[selected.status]}`}
@@ -434,7 +434,7 @@ const Editor = ({
       <div className="flex items-center justify-between mb-7">
         <div className="flex items-center gap-2 font-mono text-sm text-muted-foreground">
           <Icon name="Pencil" size={15} />
-          {draft.id ? 'Редактирование' : 'Новый ADR'} · ADR-{String(draft.number).padStart(3, '0')}
+          {draft.id ? 'Редактирование' : 'Новый ADR'} · ADR-ARHSEC-{String(draft.number).padStart(3, '0')}
         </div>
         <div className="flex gap-2">
           <button
