@@ -170,6 +170,7 @@ const Index = () => {
   const [draft, setDraft] = useState<ADR>(() => loadDraft() ?? loadRecords()[0] ?? SEED[0]);
   const [showHistory, setShowHistory] = useState(false);
   const [query, setQuery] = useState('');
+  const [appealFilter, setAppealFilter] = useState<AppealType | null>(null);
 
   useEffect(() => {
     localStorage.setItem(LS_RECORDS, JSON.stringify(records));
@@ -188,10 +189,11 @@ const Index = () => {
     () =>
       records.filter(
         (r) =>
-          r.title.toLowerCase().includes(query.toLowerCase()) ||
-          r.tags.some((t) => t.includes(query.toLowerCase())),
+          (r.title.toLowerCase().includes(query.toLowerCase()) ||
+            r.tags.some((t) => t.includes(query.toLowerCase()))) &&
+          (appealFilter === null || r.appealType === appealFilter),
       ),
-    [records, query],
+    [records, query, appealFilter],
   );
 
   const openRecord = (r: ADR) => {
@@ -319,6 +321,34 @@ const Index = () => {
               <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                 {filtered.length} решений
               </div>
+            </div>
+
+            {/* Appeal type filter */}
+            <div className="flex gap-2 flex-wrap mb-4">
+              <button
+                onClick={() => setAppealFilter(null)}
+                className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-all ${
+                  appealFilter === null
+                    ? 'border-accent/60 bg-accent/10 text-accent'
+                    : 'border-border text-muted-foreground hover:bg-secondary hover:text-foreground'
+                }`}
+              >
+                Все типы
+              </button>
+              {APPEAL_TYPES.map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setAppealFilter(appealFilter === t ? null : t)}
+                  className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-all ${
+                    appealFilter === t
+                      ? 'border-accent/60 bg-accent/10 text-accent'
+                      : 'border-border text-muted-foreground hover:bg-secondary hover:text-foreground'
+                  }`}
+                >
+                  <Icon name={APPEAL_ICONS[t]} size={12} />
+                  {t}
+                </button>
+              ))}
             </div>
 
             {/* Table-style list */}
