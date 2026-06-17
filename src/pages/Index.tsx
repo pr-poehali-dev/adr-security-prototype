@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Icon from '@/components/ui/icon';
 
 const LS_RECORDS = 'sentinel_adr_records';
@@ -797,7 +797,10 @@ const Editor = ({
   draft: ADR; setDraft: (a: ADR) => void; onSave: () => void; onCancel: () => void;
 }) => {
   const statuses: Status[] = ['Предложено', 'Принято', 'Отклонено', 'Устарело'];
-  const field = (k: keyof ADR, v: string) => setDraft({ ...draft, [k]: v });
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
+
+  const field = (k: keyof ADR, v: string) => setDraft({ ...draftRef.current, [k]: v });
 
   const [layout, setLayout] = useState<AnySection[]>(
     () => draft.sectionLayout ?? makeLayout(draft.sectionOrder ?? ALL_SECTIONS),
@@ -811,7 +814,7 @@ const Editor = ({
     const order = next
       .filter((s): s is { kind: 'fixed'; key: SectionKey } => s.kind === 'fixed')
       .map((s) => s.key);
-    setDraft({ ...draft, sectionLayout: next, sectionOrder: order });
+    setDraft({ ...draftRef.current, sectionLayout: next, sectionOrder: order });
   };
 
   const moveItem = (from: number, to: number) => {
@@ -825,7 +828,8 @@ const Editor = ({
     const item = layout[idx];
     const next = layout.filter((_, i) => i !== idx);
     if (item.kind === 'fixed') {
-      setDraft({ ...draft, sectionLayout: next, sectionOrder: next.filter((s): s is { kind: 'fixed'; key: SectionKey } => s.kind === 'fixed').map((s) => s.key), [item.key]: '' });
+      const order = next.filter((s): s is { kind: 'fixed'; key: SectionKey } => s.kind === 'fixed').map((s) => s.key);
+      setDraft({ ...draftRef.current, sectionLayout: next, sectionOrder: order, [item.key]: '' });
       setLayout(next);
     } else {
       syncLayout(next);
