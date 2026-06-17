@@ -335,10 +335,13 @@ const Index = () => {
         versions: [{ rev: 'v1', date: today, author: draft.author, note: 'Создано' }],
       };
     }
+    const layout: AnySection[] = adr.sectionLayout?.length ? adr.sectionLayout : makeLayout(adr.sectionOrder);
+    const markdown = adrToMarkdown(adr, layout);
+    const jira = adrToJiraMarkdown(adr, layout);
     await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ adr }),
+      body: JSON.stringify({ adr, markdown, jira }),
     });
     setSelectedId(adr.id);
     setEditing(false);

@@ -124,6 +124,21 @@ def handler(event: dict, context) -> dict:
                     json.dumps(adr.get("versions", []), ensure_ascii=False),
                 ),
             )
+            # Сохраняем markdown и jira-разметку в связанную таблицу
+            md = body.get("markdown", "")
+            jira = body.get("jira", "")
+            if md or jira:
+                cur.execute(
+                    f"""
+                    INSERT INTO {SCHEMA}.adr_exports (adr_id, markdown, jira, updated_at)
+                    VALUES (%s, %s, %s, NOW())
+                    ON CONFLICT (adr_id) DO UPDATE SET
+                      markdown   = EXCLUDED.markdown,
+                      jira       = EXCLUDED.jira,
+                      updated_at = NOW()
+                    """,
+                    (adr["id"], md, jira),
+                )
             conn.commit()
             return ok({"ok": True})
 
