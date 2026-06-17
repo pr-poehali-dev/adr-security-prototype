@@ -254,6 +254,7 @@ const Index = () => {
   const [editing, setEditing] = useState(savedUI.editing);
   const [draft, setDraft] = useState<ADR>(() => loadDraft() ?? loadRecords()[0] ?? SEED[0]);
   const [showHistory, setShowHistory] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [appealFilter, setAppealFilter] = useState<AppealType | null>(null);
 
@@ -598,7 +599,36 @@ const Index = () => {
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <IconBtn icon="History" label="История" onClick={() => setShowHistory((v) => !v)} active={showHistory} />
-                      <IconBtn icon="Download" label="Экспорт" onClick={() => {}} />
+                      <div className="relative">
+                        <IconBtn icon="Download" label="Экспорт" onClick={() => setExportOpen((v) => !v)} active={exportOpen} />
+                        {exportOpen && selected && (
+                          <div
+                            className="absolute top-full right-0 mt-1 z-30 bg-card border border-border rounded-xl shadow-lg overflow-hidden min-w-[200px]"
+                            onMouseLeave={() => setExportOpen(false)}
+                          >
+                            <button
+                              onClick={() => {
+                                const layout = selected.sectionLayout ?? makeLayout(selected.sectionOrder ?? ALL_SECTIONS);
+                                downloadText(adrToMarkdown(selected, layout), `${selected.id || 'adr'}.md`);
+                                setExportOpen(false);
+                              }}
+                              className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-secondary transition-colors"
+                            >
+                              <Icon name="FileText" size={15} /> Markdown (.md)
+                            </button>
+                            <button
+                              onClick={() => {
+                                const layout = selected.sectionLayout ?? makeLayout(selected.sectionOrder ?? ALL_SECTIONS);
+                                downloadText(adrToJiraMarkdown(selected, layout), `${selected.id || 'adr'}-jira.txt`);
+                                setExportOpen(false);
+                              }}
+                              className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-secondary transition-colors border-t border-border"
+                            >
+                              <Icon name="GitBranch" size={15} /> Jira Markdown (.txt)
+                            </button>
+                          </div>
+                        )}
+                      </div>
                       <button
                         onClick={startEdit}
                         className="flex items-center gap-2 bg-secondary text-secondary-foreground px-3.5 py-2 rounded-lg text-sm font-medium hover:bg-secondary/70 transition-colors"
@@ -778,6 +808,163 @@ const SECTION_META: Record<SectionKey, { label: string; placeholder: string }> =
   decision: { label: 'Решение', placeholder: 'Что именно решили сделать и почему?' },
   consequences: { label: 'Последствия', placeholder: 'Какие плюсы, минусы и риски у решения?' },
 };
+
+const FIXED_SECTION_LABELS: Record<SectionKey, string> = {
+  context: 'Контекст',
+  decision: 'Решение',
+  consequences: 'Последствия',
+};
+
+const MD_COLOR_QUOTE: Record<SectionColor, string> = {
+  default: '',
+  blue:   '> 🔵 ',
+  green:  '> 🟢 ',
+  amber:  '> 🟡 ',
+  red:    '> 🔴 ',
+  purple: '> 🟣 ',
+  pink:   '> 🩷 ',
+};
+
+const JIRA_COLOR_PANEL: Record<SectionColor, string> = {
+  default: '',
+  blue:    'blue',
+  green:   'green',
+  amber:   'yellow',
+  red:     'red',
+  purple:  'purple',
+  pink:    'red',
+};
+
+function adrToMarkdown(adr: ADR, layout: AnySection[]): string {
+  const id = `ADR-ARHSEC-${String(adr.number).padStart(3, '0')}`;
+  const meta: string[] = [];
+  meta.push(`# ${id} — ${adr.title}\n`);
+  meta.push(`| Поле | Значение |`);
+  meta.push(`|------|----------|`);
+  meta.push(`| Статус | **${adr.status}** |`);
+  meta.push(`| Тип обращения | ${adr.appealType} |`);
+  if (adr.jiraTicket) meta.push(`| Jira | \`${adr.jiraTicket}\` |`);
+  if (adr.productName) meta.push(`| Продукт | ${adr.productName} |`);
+  meta.push(`| Автор | ${adr.author} |`);
+  meta.push(`| Дата | ${adr.date} |`);
+  if (adr.tags.length) meta.push(`| Теги | ${adr.tags.map((t) => `\`#${t}\``).join(', ')} |`);
+  meta.push('');
+
+  const sections: string[] = [];
+  for (const item of layout) {
+    const color: SectionColor = item.color ?? 'default';
+    const prefix = MD_COLOR_QUOTE[color];
+
+    if (item.kind === 'fixed') {
+      const text = adr[item.key]?.trim();
+      if (!text) continue;
+      const label = FIXED_SECTION_LABELS[item.key];
+      sections.push(`## ${label}\n`);
+      if (prefix) {
+        sections.push(text.split('\n').map((l) => `${prefix}${l}`).join('\n'));
+      } else {
+        sections.push(text);
+      }
+      sections.push('');
+    } else {
+      const d = item.data;
+      if (d.type === 'text') {
+        if (!d.content?.trim()) continue;
+        sections.push(`## ${d.label}\n`);
+        if (prefix) {
+          sections.push(d.content.trim().split('\n').map((l) => `${prefix}${l}`).join('\n'));
+        } else {
+          sections.push(d.content.trim());
+        }
+        sections.push('');
+      } else if (d.type === 'table') {
+        sections.push(`## ${d.label}\n`);
+        sections.push(`| ${d.columns.join(' | ')} |`);
+        sections.push(`| ${d.columns.map(() => '---').join(' | ')} |`);
+        for (const row of d.rows) {
+          sections.push(`| ${row.map((c) => c || ' ').join(' | ')} |`);
+        }
+        sections.push('');
+      } else if (d.type === 'links') {
+        if (!d.links.length) continue;
+        sections.push(`## ${d.label}\n`);
+        for (const link of d.links.filter((l) => l.url)) {
+          sections.push(`- [${link.title || link.url}](${link.url})`);
+        }
+        sections.push('');
+      }
+    }
+  }
+
+  return [...meta, ...sections].join('\n');
+}
+
+function adrToJiraMarkdown(adr: ADR, layout: AnySection[]): string {
+  const id = `ADR-ARHSEC-${String(adr.number).padStart(3, '0')}`;
+  const lines: string[] = [];
+  lines.push(`h1. ${id} — ${adr.title}\n`);
+
+  lines.push('|| Поле || Значение ||');
+  lines.push(`| Статус | *${adr.status}* |`);
+  lines.push(`| Тип обращения | ${adr.appealType} |`);
+  if (adr.jiraTicket) lines.push(`| Jira | {{${adr.jiraTicket}}} |`);
+  if (adr.productName) lines.push(`| Продукт | ${adr.productName} |`);
+  lines.push(`| Автор | ${adr.author} |`);
+  lines.push(`| Дата | ${adr.date} |`);
+  if (adr.tags.length) lines.push(`| Теги | ${adr.tags.map((t) => `#${t}`).join(', ')} |`);
+  lines.push('');
+
+  for (const item of layout) {
+    const color: SectionColor = item.color ?? 'default';
+    const panelColor = JIRA_COLOR_PANEL[color];
+
+    const wrapPanel = (label: string, content: string) => {
+      if (panelColor) {
+        return `{panel:title=${label}|borderColor=${panelColor}|titleBGColor=${panelColor}|bgColor=white}\n${content}\n{panel}`;
+      }
+      return `h2. ${label}\n\n${content}`;
+    };
+
+    if (item.kind === 'fixed') {
+      const text = adr[item.key]?.trim();
+      if (!text) continue;
+      lines.push(wrapPanel(FIXED_SECTION_LABELS[item.key], text));
+      lines.push('');
+    } else {
+      const d = item.data;
+      if (d.type === 'text') {
+        if (!d.content?.trim()) continue;
+        lines.push(wrapPanel(d.label, d.content.trim()));
+        lines.push('');
+      } else if (d.type === 'table') {
+        const tableLines: string[] = [];
+        tableLines.push(`|| ${d.columns.join(' || ')} ||`);
+        for (const row of d.rows) {
+          tableLines.push(`| ${row.map((c) => c || ' ').join(' | ')} |`);
+        }
+        lines.push(wrapPanel(d.label, tableLines.join('\n')));
+        lines.push('');
+      } else if (d.type === 'links') {
+        if (!d.links.length) continue;
+        const linkLines = d.links.filter((l) => l.url).map((l) => `* [${l.title || l.url}|${l.url}]`);
+        lines.push(wrapPanel(d.label, linkLines.join('\n')));
+        lines.push('');
+      }
+    }
+  }
+
+  return lines.join('\n');
+}
+
+function downloadText(content: string, filename: string) {
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 const LinksSectionEditor = ({
   data, onChange,
