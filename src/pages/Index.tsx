@@ -1,5 +1,24 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Icon from '@/components/ui/icon';
+
+const LS_RECORDS = 'sentinel_adr_records';
+const LS_DRAFT = 'sentinel_adr_draft';
+
+function loadRecords(): ADR[] {
+  try {
+    const raw = localStorage.getItem(LS_RECORDS);
+    if (raw) return JSON.parse(raw);
+  } catch (e) { void e; }
+  return SEED;
+}
+
+function loadDraft(): ADR | null {
+  try {
+    const raw = localStorage.getItem(LS_DRAFT);
+    if (raw) return JSON.parse(raw);
+  } catch (e) { void e; }
+  return null;
+}
 
 type Status = 'Принято' | 'Предложено' | 'Устарело' | 'Отклонено';
 type Tab = 'library' | 'editor';
@@ -115,12 +134,23 @@ const EMPTY_DRAFT: ADR = {
 
 const Index = () => {
   const [tab, setTab] = useState<Tab>('library');
-  const [records, setRecords] = useState<ADR[]>(SEED);
-  const [selectedId, setSelectedId] = useState<string>(SEED[0].id);
+  const [records, setRecords] = useState<ADR[]>(() => loadRecords());
+  const [selectedId, setSelectedId] = useState<string>(() => loadRecords()[0]?.id ?? '');
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState<ADR>(SEED[0]);
+  const [draft, setDraft] = useState<ADR>(() => loadDraft() ?? loadRecords()[0] ?? SEED[0]);
   const [showHistory, setShowHistory] = useState(false);
   const [query, setQuery] = useState('');
+
+  useEffect(() => {
+    localStorage.setItem(LS_RECORDS, JSON.stringify(records));
+  }, [records]);
+
+  useEffect(() => {
+    if (editing) {
+      localStorage.setItem(LS_DRAFT, JSON.stringify(draft));
+    }
+  }, [draft, editing]);
+
 
   const selected = records.find((r) => r.id === selectedId);
 
@@ -181,6 +211,7 @@ const Index = () => {
       setSelectedId(id);
     }
     setEditing(false);
+    localStorage.removeItem(LS_DRAFT);
   };
 
   const TABS = [
