@@ -3,6 +3,7 @@ import Icon from '@/components/ui/icon';
 
 const LS_RECORDS = 'sentinel_adr_records';
 const LS_DRAFT = 'sentinel_adr_draft';
+const LS_UI = 'sentinel_adr_ui';
 
 function loadRecords(): ADR[] {
   try {
@@ -208,11 +209,20 @@ const EMPTY_DRAFT: ADR = {
   versions: [],
 };
 
+function loadUI(): { tab: Tab; selectedId: string; editing: boolean } {
+  try {
+    const raw = localStorage.getItem(LS_UI);
+    if (raw) return JSON.parse(raw);
+  } catch (e) { void e; }
+  return { tab: 'library', selectedId: loadRecords()[0]?.id ?? '', editing: false };
+}
+
 const Index = () => {
-  const [tab, setTab] = useState<Tab>('library');
+  const savedUI = loadUI();
+  const [tab, setTab] = useState<Tab>(savedUI.tab);
   const [records, setRecords] = useState<ADR[]>(() => loadRecords());
-  const [selectedId, setSelectedId] = useState<string>(() => loadRecords()[0]?.id ?? '');
-  const [editing, setEditing] = useState(false);
+  const [selectedId, setSelectedId] = useState<string>(savedUI.selectedId);
+  const [editing, setEditing] = useState(savedUI.editing);
   const [draft, setDraft] = useState<ADR>(() => loadDraft() ?? loadRecords()[0] ?? SEED[0]);
   const [showHistory, setShowHistory] = useState(false);
   const [query, setQuery] = useState('');
@@ -221,6 +231,10 @@ const Index = () => {
   useEffect(() => {
     localStorage.setItem(LS_RECORDS, JSON.stringify(records));
   }, [records]);
+
+  useEffect(() => {
+    localStorage.setItem(LS_UI, JSON.stringify({ tab, selectedId, editing }));
+  }, [tab, selectedId, editing]);
 
   useEffect(() => {
     if (editing) {
@@ -505,7 +519,11 @@ const Index = () => {
             {/* Detail / Editor */}
             <section className="min-h-[60vh]">
               {editing ? (
-                <Editor draft={draft} setDraft={setDraft} onSave={saveDraft} onCancel={() => setEditing(false)} />
+                <Editor draft={draft} setDraft={setDraft} onSave={saveDraft} onCancel={() => {
+                  setEditing(false);
+                  localStorage.removeItem(LS_DRAFT);
+                  if (!draft.id) setSelectedId(records[0]?.id ?? '');
+                }} />
               ) : selected ? (
                 <article key={selected.id} className="animate-fade-up">
                   <div className="flex items-start justify-between gap-4 mb-8">
