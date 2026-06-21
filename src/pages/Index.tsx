@@ -361,6 +361,8 @@ const Index = () => {
   const [draft, setDraft] = useState<ADR>(() => loadDraft() ?? SEED[0]);
   const [showHistory, setShowHistory] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [markdownModal, setMarkdownModal] = useState<{ content: string; title: string } | null>(null);
+  const [copied, setCopied] = useState(false);
   const [query, setQuery] = useState("");
   const [appealFilter, setAppealFilter] = useState<AppealType | null>(null);
 
@@ -861,6 +863,27 @@ const Index = () => {
                               <Icon name="GitBranch" size={15} /> Jira Markdown
                               (.txt)
                             </button>
+                            <div className="border-t border-border my-1" />
+                            <button
+                              onClick={() => {
+                                const layout = selected.sectionLayout ?? makeLayout(selected.sectionOrder ?? ALL_SECTIONS);
+                                setMarkdownModal({ content: adrToMarkdown(selected, layout), title: 'Markdown' });
+                                setExportOpen(false);
+                              }}
+                              className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-secondary transition-colors"
+                            >
+                              <Icon name="Eye" size={15} /> Просмотр Markdown
+                            </button>
+                            <button
+                              onClick={() => {
+                                const layout = selected.sectionLayout ?? makeLayout(selected.sectionOrder ?? ALL_SECTIONS);
+                                setMarkdownModal({ content: adrToJiraMarkdown(selected, layout), title: 'Jira Markdown' });
+                                setExportOpen(false);
+                              }}
+                              className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-secondary transition-colors border-t border-border"
+                            >
+                              <Icon name="Eye" size={15} /> Просмотр Jira Markdown
+                            </button>
                           </div>
                         )}
                       </div>
@@ -1064,6 +1087,50 @@ const Index = () => {
           </div>
         )}
       </main>
+
+      {/* ── Модал просмотра Markdown ── */}
+      {markdownModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => { setMarkdownModal(null); setCopied(false); }}
+        >
+          <div
+            className="relative bg-card border border-border rounded-2xl shadow-2xl w-full max-w-3xl max-h-[80vh] flex flex-col mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Icon name="FileCode" size={16} className="text-accent" />
+                {markdownModal.title}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(markdownModal.content);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-border hover:bg-secondary transition-colors"
+                >
+                  <Icon name={copied ? 'Check' : 'Copy'} size={13} />
+                  {copied ? 'Скопировано!' : 'Копировать'}
+                </button>
+                <button
+                  onClick={() => { setMarkdownModal(null); setCopied(false); }}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-secondary transition-colors text-muted-foreground"
+                >
+                  <Icon name="X" size={15} />
+                </button>
+              </div>
+            </div>
+            {/* Content */}
+            <pre className="overflow-auto p-5 text-[12px] leading-relaxed font-mono text-foreground/80 whitespace-pre-wrap break-words">
+              {markdownModal.content}
+            </pre>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
