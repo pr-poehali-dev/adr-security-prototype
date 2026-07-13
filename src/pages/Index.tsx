@@ -853,6 +853,54 @@ const Index = () => {
             {/* Mini-list */}
             <aside className="space-y-1.5">
               <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-3 px-1">
+                Шаблоны
+              </div>
+              <div className="space-y-1.5 mb-5">
+                {TEMPLATES.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => startNew()}
+                    className="w-full flex items-center gap-2.5 text-left rounded-lg border border-transparent p-2.5 hover:border-border hover:bg-card/60 transition-all"
+                  >
+                    <Icon
+                      name={t.icon}
+                      size={15}
+                      className="text-accent shrink-0"
+                    />
+                    <div className="min-w-0">
+                      <div className="text-xs font-medium leading-snug truncate">
+                        {t.name}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground truncate">
+                        {t.desc}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+                {userTemplates.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => startNew(t)}
+                    className="w-full flex items-center gap-2.5 text-left rounded-lg border border-transparent p-2.5 hover:border-border hover:bg-card/60 transition-all"
+                  >
+                    <Icon
+                      name={t.icon}
+                      size={15}
+                      className="text-accent shrink-0"
+                    />
+                    <div className="min-w-0">
+                      <div className="text-xs font-medium leading-snug truncate">
+                        {t.name}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground truncate">
+                        {t.description || t.title}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-3 px-1">
                 Записи
               </div>
               {records.map((r) => (
