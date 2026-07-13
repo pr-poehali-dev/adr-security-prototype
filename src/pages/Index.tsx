@@ -693,7 +693,7 @@ const Index = () => {
 
             {/* Table-style list */}
             <div className="rounded-xl border border-border overflow-hidden">
-              <div className="grid grid-cols-[1fr_140px_120px_180px_auto_140px_120px_60px_90px] text-[11px] uppercase tracking-[0.18em] text-muted-foreground bg-muted/40 border-b border-border divide-x divide-border">
+              <div className="grid grid-cols-[1fr_140px_120px_180px_130px_140px_120px_60px_90px] text-[11px] uppercase tracking-[0.18em] text-muted-foreground bg-muted/40 border-b border-border divide-x divide-border">
                 <span className="px-4 py-3">Название</span>
                 <span className="px-4 py-3">Продукт</span>
                 <span className="px-4 py-3">Jira</span>
@@ -719,7 +719,7 @@ const Index = () => {
                   key={r.id}
                   onClick={() => openRecord(r)}
                   style={{ animationDelay: `${i * 30}ms` }}
-                  className="animate-fade-up w-full text-left grid grid-cols-[1fr_140px_120px_180px_auto_140px_120px_60px_90px] items-center border-b border-border/60 last:border-0 hover:bg-card/80 transition-colors group divide-x divide-border/40"
+                  className="animate-fade-up w-full text-left grid grid-cols-[1fr_140px_120px_180px_130px_140px_120px_60px_90px] items-center border-b border-border/60 last:border-0 hover:bg-card/80 transition-colors group divide-x divide-border/40"
                 >
                   <div className="px-4 py-4">
                     <div className="text-sm font-medium group-hover:text-accent transition-colors leading-snug">
@@ -743,7 +743,7 @@ const Index = () => {
                     />
                     <span className="leading-tight">{r.appealType}</span>
                   </div>
-                  <div className="px-4 py-4 text-sm text-muted-foreground">
+                  <div className="px-4 py-4 text-sm text-muted-foreground truncate">
                     {r.author}
                   </div>
                   <div className="px-4 py-4 flex gap-1 flex-wrap">
