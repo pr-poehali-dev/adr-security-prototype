@@ -80,50 +80,73 @@ def handler(event: dict, context) -> dict:
             if not adr:
                 return err(400, "adr field required")
 
-            cur.execute(
-                f"""
-                INSERT INTO {SCHEMA}.adrs
-                  (id, number, title, status, jira_ticket, product_name, appeal_type,
-                   date, author, tags, context, decision, consequences,
-                   section_order, section_layout, versions, updated_at)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,NOW())
-                ON CONFLICT (id) DO UPDATE SET
-                  number        = EXCLUDED.number,
-                  title         = EXCLUDED.title,
-                  status        = EXCLUDED.status,
-                  jira_ticket   = EXCLUDED.jira_ticket,
-                  product_name  = EXCLUDED.product_name,
-                  appeal_type   = EXCLUDED.appeal_type,
-                  date          = EXCLUDED.date,
-                  author        = EXCLUDED.author,
-                  tags          = EXCLUDED.tags,
-                  context       = EXCLUDED.context,
-                  decision      = EXCLUDED.decision,
-                  consequences  = EXCLUDED.consequences,
-                  section_order = EXCLUDED.section_order,
-                  section_layout= EXCLUDED.section_layout,
-                  versions      = EXCLUDED.versions,
-                  updated_at    = NOW()
-                """,
-                (
-                    adr["id"],
-                    adr.get("number", 0),
-                    adr.get("title", ""),
-                    adr.get("status", "Предложено"),
-                    adr.get("jiraTicket", ""),
-                    adr.get("productName", ""),
-                    adr.get("appealType", "Консультация"),
-                    adr.get("date", ""),
-                    adr.get("author", ""),
-                    json.dumps(adr.get("tags", []), ensure_ascii=False),
-                    adr.get("context", ""),
-                    adr.get("decision", ""),
-                    adr.get("consequences", ""),
-                    json.dumps(adr.get("sectionOrder", []), ensure_ascii=False),
-                    json.dumps(adr.get("sectionLayout", []), ensure_ascii=False),
-                    json.dumps(adr.get("versions", []), ensure_ascii=False),
-                ),
-            )
+            cur.execute(f"SELECT number FROM {SCHEMA}.adrs WHERE id = %s", (adr["id"],))
+            existing_row = cur.fetchone()
+            is_new = existing_row is None
+
+            # Номер для существующей записи не меняем. Для новой — вычисляем
+            # и пробуем вставить с повторами: уникальный индекс на number
+            # не даст двум одновременным запросам получить один и тот же номер —
+            # при конфликте открываем новую транзакцию и пересчитываем номер заново.
+            max_attempts = 5
+            for attempt in range(max_attempts):
+                if not is_new:
+                    number = existing_row[0]
+                else:
+                    cur.execute(f"SELECT COALESCE(MAX(number), 0) + 1 FROM {SCHEMA}.adrs")
+                    number = cur.fetchone()[0]
+
+                try:
+                    cur.execute(
+                        f"""
+                        INSERT INTO {SCHEMA}.adrs
+                          (id, number, title, status, jira_ticket, product_name, appeal_type,
+                           date, author, tags, context, decision, consequences,
+                           section_order, section_layout, versions, updated_at)
+                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,NOW())
+                        ON CONFLICT (id) DO UPDATE SET
+                          number        = EXCLUDED.number,
+                          title         = EXCLUDED.title,
+                          status        = EXCLUDED.status,
+                          jira_ticket   = EXCLUDED.jira_ticket,
+                          product_name  = EXCLUDED.product_name,
+                          appeal_type   = EXCLUDED.appeal_type,
+                          date          = EXCLUDED.date,
+                          author        = EXCLUDED.author,
+                          tags          = EXCLUDED.tags,
+                          context       = EXCLUDED.context,
+                          decision      = EXCLUDED.decision,
+                          consequences  = EXCLUDED.consequences,
+                          section_order = EXCLUDED.section_order,
+                          section_layout= EXCLUDED.section_layout,
+                          versions      = EXCLUDED.versions,
+                          updated_at    = NOW()
+                        """,
+                        (
+                            adr["id"],
+                            number,
+                            adr.get("title", ""),
+                            adr.get("status", "Предложено"),
+                            adr.get("jiraTicket", ""),
+                            adr.get("productName", ""),
+                            adr.get("appealType", "Консультация"),
+                            adr.get("date", ""),
+                            adr.get("author", ""),
+                            json.dumps(adr.get("tags", []), ensure_ascii=False),
+                            adr.get("context", ""),
+                            adr.get("decision", ""),
+                            adr.get("consequences", ""),
+                            json.dumps(adr.get("sectionOrder", []), ensure_ascii=False),
+                            json.dumps(adr.get("sectionLayout", []), ensure_ascii=False),
+                            json.dumps(adr.get("versions", []), ensure_ascii=False),
+                        ),
+                    )
+                    break
+                except psycopg2.errors.UniqueViolation:
+                    conn.rollback()
+                    if not is_new or attempt == max_attempts - 1:
+                        return err(409, "Не удалось сохранить: конфликт номера ADR, повторите попытку")
+                    continue
             # Сохраняем markdown и jira-разметку в связанную таблицу
             md = body.get("markdown", "")
             jira = body.get("jira", "")
