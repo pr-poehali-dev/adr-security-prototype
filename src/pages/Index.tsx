@@ -6,6 +6,9 @@ const LS_UI = "sentinel_adr_ui";
 const API_URL =
   import.meta.env.VITE_API_URL ??
   "https://functions.poehali.dev/d14ff88a-afc1-46b5-b2fd-0719a5ede002";
+const TEMPLATES_API_URL =
+  import.meta.env.VITE_TEMPLATES_API_URL ??
+  "https://functions.poehali.dev/377ff43e-af71-4445-a02f-d1c7989c8ec5";
 
 function loadDraft(): ADR | null {
   try {
@@ -171,6 +174,26 @@ interface ADR {
   sectionOrder: SectionKey[];
   sectionLayout: AnySection[];
   versions: Version[];
+}
+
+interface UserTemplate {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  sourceAdrId: string;
+  title: string;
+  status: Status;
+  jiraTicket: string;
+  productName: string;
+  appealType: AppealType;
+  author: string;
+  tags: string[];
+  context: string;
+  decision: string;
+  consequences: string;
+  sectionOrder: SectionKey[];
+  sectionLayout: AnySection[];
 }
 
 const TEMPLATES = [
@@ -365,6 +388,10 @@ const Index = () => {
   const [copied, setCopied] = useState(false);
   const [query, setQuery] = useState("");
   const [appealFilter, setAppealFilter] = useState<AppealType | null>(null);
+  const [userTemplates, setUserTemplates] = useState<UserTemplate[]>([]);
+  const [saveTemplateModal, setSaveTemplateModal] = useState<ADR | null>(null);
+  const [templateName, setTemplateName] = useState("");
+  const [templateDesc, setTemplateDesc] = useState("");
 
   const fetchRecords = useCallback(async () => {
     setLoading(true);
@@ -381,9 +408,20 @@ const Index = () => {
     }
   }, []);
 
+  const fetchTemplates = useCallback(async () => {
+    try {
+      const res = await fetch(TEMPLATES_API_URL);
+      const data = await res.json();
+      setUserTemplates(data.templates ?? []);
+    } catch {
+      setUserTemplates([]);
+    }
+  }, []);
+
   useEffect(() => {
     fetchRecords();
-  }, [fetchRecords]);
+    fetchTemplates();
+  }, [fetchRecords, fetchTemplates]);
 
   useEffect(() => {
     localStorage.setItem(LS_UI, JSON.stringify({ tab, selectedId, editing }));
@@ -421,12 +459,75 @@ const Index = () => {
     setEditing(true);
   };
 
-  const startNew = () => {
+  const startNew = (template?: UserTemplate) => {
     const nextNum = Math.max(0, ...records.map((r) => r.number)) + 1;
-    setDraft({ ...EMPTY_DRAFT, number: nextNum });
+    if (template) {
+      setDraft({
+        ...EMPTY_DRAFT,
+        number: nextNum,
+        title: template.title,
+        status: template.status,
+        jiraTicket: template.jiraTicket,
+        productName: template.productName,
+        appealType: template.appealType,
+        author: template.author,
+        tags: template.tags,
+        context: template.context,
+        decision: template.decision,
+        consequences: template.consequences,
+        sectionOrder: template.sectionOrder?.length
+          ? template.sectionOrder
+          : EMPTY_DRAFT.sectionOrder,
+        sectionLayout: template.sectionLayout?.length
+          ? template.sectionLayout
+          : EMPTY_DRAFT.sectionLayout,
+      });
+    } else {
+      setDraft({ ...EMPTY_DRAFT, number: nextNum });
+    }
     setEditing(true);
     setSelectedId("");
     setTab("editor");
+  };
+
+  const saveAsTemplate = async () => {
+    if (!saveTemplateModal || !templateName.trim()) return;
+    const adr = saveTemplateModal;
+    const template: UserTemplate = {
+      id: `ut${Date.now()}`,
+      name: templateName.trim(),
+      description: templateDesc.trim(),
+      icon: "FileText",
+      sourceAdrId: adr.id,
+      title: adr.title,
+      status: adr.status,
+      jiraTicket: adr.jiraTicket,
+      productName: adr.productName,
+      appealType: adr.appealType,
+      author: adr.author,
+      tags: adr.tags,
+      context: adr.context,
+      decision: adr.decision,
+      consequences: adr.consequences,
+      sectionOrder: adr.sectionOrder,
+      sectionLayout: adr.sectionLayout,
+    };
+    await fetch(TEMPLATES_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ template }),
+    });
+    setSaveTemplateModal(null);
+    setTemplateName("");
+    setTemplateDesc("");
+    await fetchTemplates();
+  };
+
+  const deleteTemplate = async (id: string) => {
+    await fetch(`${TEMPLATES_API_URL}?id=${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+    await fetchTemplates();
   };
 
   const saveDraft = async () => {
@@ -497,7 +598,7 @@ const Index = () => {
             </div>
           </div>
           <button
-            onClick={startNew}
+            onClick={() => startNew()}
             className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-primary/90 transition-all"
           >
             <Icon name="Plus" size={16} />
@@ -677,7 +778,7 @@ const Index = () => {
                 {TEMPLATES.map((t) => (
                   <button
                     key={t.id}
-                    onClick={startNew}
+                    onClick={() => startNew()}
                     className="text-left rounded-xl border border-border bg-card p-4 hover:border-accent/50 hover:-translate-y-0.5 transition-all"
                   >
                     <Icon
@@ -695,6 +796,50 @@ const Index = () => {
                 ))}
               </div>
             </div>
+
+            {/* User-saved templates */}
+            {userTemplates.length > 0 && (
+              <div className="mt-8">
+                <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-4">
+                  Мои шаблоны
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {userTemplates.map((t) => (
+                    <div
+                      key={t.id}
+                      className="group relative text-left rounded-xl border border-border bg-card p-4 hover:border-accent/50 hover:-translate-y-0.5 transition-all"
+                    >
+                      <button
+                        onClick={() => startNew(t)}
+                        className="text-left w-full"
+                      >
+                        <Icon
+                          name={t.icon}
+                          size={20}
+                          className="text-accent mb-3"
+                        />
+                        <div className="text-sm font-medium leading-tight pr-5">
+                          {t.name}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground mt-1 leading-tight line-clamp-2">
+                          {t.description || t.title}
+                        </div>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteTemplate(t.id);
+                        }}
+                        title="Удалить шаблон"
+                        className="absolute top-3 right-3 w-5 h-5 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all"
+                      >
+                        <Icon name="X" size={13} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -887,6 +1032,15 @@ const Index = () => {
                           </div>
                         )}
                       </div>
+                      <IconBtn
+                        icon="BookmarkPlus"
+                        label="Сохранить как шаблон"
+                        onClick={() => {
+                          setSaveTemplateModal(selected);
+                          setTemplateName(selected.title);
+                          setTemplateDesc("");
+                        }}
+                      />
                       <button
                         onClick={startEdit}
                         className="flex items-center gap-2 bg-secondary text-secondary-foreground px-3.5 py-2 rounded-lg text-sm font-medium hover:bg-secondary/70 transition-colors"
@@ -1128,6 +1282,76 @@ const Index = () => {
             <pre className="overflow-auto p-5 text-[12px] leading-relaxed font-mono text-foreground/80 whitespace-pre-wrap break-words">
               {markdownModal.content}
             </pre>
+          </div>
+        </div>
+      )}
+
+      {/* ── Модал сохранения ADR как шаблона ── */}
+      {saveTemplateModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setSaveTemplateModal(null)}
+        >
+          <div
+            className="relative bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Icon name="BookmarkPlus" size={16} className="text-accent" />
+                Сохранить как шаблон
+              </div>
+              <button
+                onClick={() => setSaveTemplateModal(null)}
+                className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-secondary transition-colors text-muted-foreground"
+              >
+                <Icon name="X" size={15} />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Записи, теги и структура секций из «{saveTemplateModal.title}» сохранятся как референс для быстрого создания новых ADR.
+              </p>
+              <div>
+                <label className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground mb-1.5 block">
+                  Название шаблона
+                </label>
+                <input
+                  autoFocus
+                  value={templateName}
+                  onChange={(e) => setTemplateName(e.target.value)}
+                  placeholder="Например: Threat Model для API"
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-sm outline-none focus:border-accent transition-colors"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground mb-1.5 block">
+                  Описание (необязательно)
+                </label>
+                <textarea
+                  value={templateDesc}
+                  onChange={(e) => setTemplateDesc(e.target.value)}
+                  placeholder="Когда применять этот шаблон"
+                  rows={2}
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-sm outline-none focus:border-accent transition-colors resize-none"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-border">
+              <button
+                onClick={() => setSaveTemplateModal(null)}
+                className="px-3.5 py-2 rounded-lg text-sm border border-border hover:bg-secondary transition-colors"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={saveAsTemplate}
+                disabled={!templateName.trim()}
+                className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 disabled:opacity-40 transition-all"
+              >
+                <Icon name="Check" size={15} /> Сохранить шаблон
+              </button>
+            </div>
           </div>
         </div>
       )}

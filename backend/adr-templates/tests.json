@@ -1,0 +1,48 @@
+{
+  "tests": [
+    {
+      "name": "GET all templates",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "POST save template",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "template": {
+          "id": "test-tpl-001",
+          "name": "Test Template",
+          "description": "Test description",
+          "icon": "FileText",
+          "sourceAdrId": "a1",
+          "title": "Test ADR",
+          "status": "Предложено",
+          "jiraTicket": "",
+          "productName": "",
+          "appealType": "Консультация",
+          "author": "Test",
+          "tags": [],
+          "context": "",
+          "decision": "",
+          "consequences": "",
+          "sectionOrder": ["context", "decision", "consequences"],
+          "sectionLayout": []
+        }
+      },
+      "expectedStatus": 200,
+      "expectedBody": { "ok": true },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "DELETE template",
+      "method": "DELETE",
+      "path": "/",
+      "body": { "id": "test-tpl-001" },
+      "expectedStatus": 200,
+      "expectedBody": { "ok": true },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
