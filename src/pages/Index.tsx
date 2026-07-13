@@ -372,6 +372,7 @@ const Index = () => {
   const [query, setQuery] = useState("");
   const [appealFilter, setAppealFilter] = useState<AppealType | null>(null);
   const [userTemplates, setUserTemplates] = useState<UserTemplate[]>([]);
+  const [draftVersion, setDraftVersion] = useState(0);
   const [saveTemplateModal, setSaveTemplateModal] = useState<ADR | null>(null);
   const [templateName, setTemplateName] = useState("");
   const [templateDesc, setTemplateDesc] = useState("");
@@ -439,6 +440,7 @@ const Index = () => {
   const startEdit = () => {
     if (!selected) return;
     setDraft(selected);
+    setDraftVersion((v) => v + 1);
     setEditing(true);
   };
 
@@ -468,6 +470,7 @@ const Index = () => {
     } else {
       setDraft({ ...EMPTY_DRAFT, number: nextNum });
     }
+    setDraftVersion((v) => v + 1);
     setEditing(true);
     setSelectedId("");
     setTab("editor");
@@ -913,6 +916,7 @@ const Index = () => {
             <section className="min-h-[60vh]">
               {editing ? (
                 <Editor
+                  key={draftVersion}
                   draft={draft}
                   setDraft={setDraft}
                   onSave={saveDraft}
