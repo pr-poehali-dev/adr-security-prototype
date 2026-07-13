@@ -204,24 +204,6 @@ const TEMPLATES = [
     desc: "Контекст · Решение · Последствия",
     icon: "FileText",
   },
-  {
-    id: "t2",
-    name: "Threat Model",
-    desc: "Активы · Угрозы · Контрмеры",
-    icon: "ShieldAlert",
-  },
-  {
-    id: "t3",
-    name: "Access Control",
-    desc: "Роли · Права · Политики",
-    icon: "KeyRound",
-  },
-  {
-    id: "t4",
-    name: "Криптография",
-    desc: "Алгоритмы · Ключи · Ротация",
-    icon: "Lock",
-  },
 ];
 
 const STATUS_STYLES: Record<Status, string> = {
