@@ -376,6 +376,7 @@ const Index = () => {
   const [saveTemplateModal, setSaveTemplateModal] = useState<ADR | null>(null);
   const [templateName, setTemplateName] = useState("");
   const [templateDesc, setTemplateDesc] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
 
   const fetchRecords = useCallback(async () => {
     setLoading(true);
@@ -401,6 +402,18 @@ const Index = () => {
       setUserTemplates([]);
     }
   }, []);
+
+  const refreshAll = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([fetchRecords(), fetchTemplates()]);
+      toast.success("Данные обновлены");
+    } catch {
+      toast.error("Не удалось обновить данные");
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchRecords, fetchTemplates]);
 
   useEffect(() => {
     fetchRecords();
@@ -586,13 +599,27 @@ const Index = () => {
               </div>
             </div>
           </div>
-          <button
-            onClick={() => startNew()}
-            className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-primary/90 transition-all"
-          >
-            <Icon name="Plus" size={16} />
-            Новый ADR
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={refreshAll}
+              disabled={refreshing}
+              title="Обновить данные"
+              className="flex items-center gap-2 border border-border px-3.5 py-2.5 rounded-lg text-sm font-medium hover:bg-secondary transition-all disabled:opacity-50"
+            >
+              <Icon
+                name="RefreshCw"
+                size={16}
+                className={refreshing ? "animate-spin" : ""}
+              />
+            </button>
+            <button
+              onClick={() => startNew()}
+              className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-primary/90 transition-all"
+            >
+              <Icon name="Plus" size={16} />
+              Новый ADR
+            </button>
+          </div>
         </div>
 
         {/* Tabs */}
