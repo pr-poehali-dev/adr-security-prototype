@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import Icon from "@/components/ui/icon";
 
 const LS_DRAFT = "sentinel_adr_draft";
@@ -521,6 +522,9 @@ const Index = () => {
     setTemplateName("");
     setTemplateDesc("");
     await fetchTemplates();
+    toast.success("Шаблон сохранён", {
+      description: `«${template.name}» доступен в разделе «Мои шаблоны»`,
+    });
   };
 
   const deleteTemplate = async (id: string) => {
