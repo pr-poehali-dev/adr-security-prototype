@@ -2096,7 +2096,7 @@ const Editor = ({
                     onChange={(e) => field(item.key, e.target.value)}
                     placeholder={SECTION_META[item.key].placeholder}
                     rows={3}
-                    className="w-full bg-transparent px-4 py-3 text-[15px] leading-relaxed outline-none resize-none"
+                    className="w-full bg-transparent px-4 py-3 text-[15px] leading-relaxed outline-none resize-y min-h-[76px]"
                   />
                 ) : item.data.type === "text" ? (
                   <textarea
