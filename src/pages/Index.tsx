@@ -1696,22 +1696,25 @@ const TableSectionEditor = ({
   };
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto rounded-lg border border-border">
       <table className="w-full text-sm border-collapse">
         <thead>
-          <tr>
+          <tr className="bg-muted">
             {data.columns.map((col, c) => (
-              <th key={c} className="text-left p-0 border-b border-border">
+              <th
+                key={c}
+                className="text-left p-0 border-b-2 border-border border-r border-r-border/60 last:border-r-0"
+              >
                 <div className="flex items-center gap-1 group/col">
                   <input
                     value={col}
                     onChange={(e) => setCol(c, e.target.value)}
-                    className="w-full bg-transparent px-2 py-1.5 text-[11px] uppercase tracking-[0.14em] text-muted-foreground font-medium outline-none focus:text-foreground"
+                    className="w-full bg-transparent px-3 py-2 text-[11px] uppercase tracking-[0.14em] text-muted-foreground font-semibold outline-none focus:text-foreground"
                   />
                   {data.columns.length > 1 && (
                     <button
                       onClick={() => removeCol(c)}
-                      className="opacity-0 group-hover/col:opacity-100 text-muted-foreground hover:text-destructive transition-all pr-1 shrink-0"
+                      className="opacity-0 group-hover/col:opacity-100 text-muted-foreground hover:text-destructive transition-all pr-2 shrink-0"
                     >
                       <Icon name="X" size={12} />
                     </button>
@@ -1719,10 +1722,10 @@ const TableSectionEditor = ({
                 </div>
               </th>
             ))}
-            <th className="w-8 border-b border-border">
+            <th className="w-8 border-b-2 border-border">
               <button
                 onClick={addCol}
-                className="w-full flex items-center justify-center py-1.5 text-muted-foreground hover:text-accent transition-colors"
+                className="w-full flex items-center justify-center py-2 text-muted-foreground hover:text-accent transition-colors"
                 title="Добавить столбец"
               >
                 <Icon name="Plus" size={13} />
@@ -1734,15 +1737,18 @@ const TableSectionEditor = ({
           {data.rows.map((row, r) => (
             <tr
               key={r}
-              className="group/row border-b border-border/50 last:border-0"
+              className={`group/row border-b border-border last:border-0 ${r % 2 === 1 ? "bg-muted/40" : ""}`}
             >
               {row.map((cell, c) => (
-                <td key={c} className="p-0 align-top">
+                <td
+                  key={c}
+                  className="p-0 align-top border-r border-border/60 last:border-r-0"
+                >
                   <textarea
                     value={cell}
                     onChange={(e) => setCell(r, c, e.target.value)}
                     rows={1}
-                    className="w-full bg-transparent px-2 py-2 text-[14px] leading-snug outline-none resize-none focus:bg-accent/5 transition-colors"
+                    className="w-full bg-transparent px-3 py-2 text-[14px] leading-snug outline-none resize-none focus:bg-accent/10 transition-colors"
                     style={{ minHeight: "36px" }}
                     onInput={(e) => {
                       const t = e.currentTarget;
@@ -1766,7 +1772,7 @@ const TableSectionEditor = ({
       </table>
       <button
         onClick={addRow}
-        className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-accent transition-colors"
+        className="w-full flex items-center justify-center gap-1.5 py-2 text-xs text-muted-foreground hover:text-accent hover:bg-accent/5 border-t border-border transition-colors"
       >
         <Icon name="Plus" size={12} /> Добавить строку
       </button>
