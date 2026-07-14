@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import Icon from "@/components/ui/icon";
 
@@ -347,6 +348,20 @@ const EMPTY_DRAFT: ADR = {
   versions: [],
 };
 
+function formatAdrCode(number: number) {
+  return `ADR-ARHSEC-${String(number).padStart(3, "0")}`;
+}
+
+function matchRecordByParam(idParam: string, records: ADR[]): ADR | undefined {
+  const normalized = idParam.trim().toUpperCase();
+  const asNumber = Number(idParam);
+  return records.find((r) => {
+    if (r.id === idParam) return true;
+    if (!Number.isNaN(asNumber) && r.number === asNumber) return true;
+    return formatAdrCode(r.number) === normalized;
+  });
+}
+
 function loadUI(): { tab: Tab; selectedId: string; editing: boolean } {
   try {
     const raw = localStorage.getItem(LS_UI);
@@ -359,7 +374,9 @@ function loadUI(): { tab: Tab; selectedId: string; editing: boolean } {
 
 const Index = () => {
   const savedUI = loadUI();
-  const [tab, setTab] = useState<Tab>(savedUI.tab);
+  const { id: routeId } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [tab, setTab] = useState<Tab>(routeId ? "editor" : savedUI.tab);
   const [records, setRecords] = useState<ADR[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string>(savedUI.selectedId);
@@ -421,6 +438,22 @@ const Index = () => {
   }, [fetchRecords, fetchTemplates]);
 
   useEffect(() => {
+    if (loading || !routeId) return;
+    const found = matchRecordByParam(routeId, records);
+    if (found) {
+      setSelectedId(found.id);
+      setEditing(false);
+      setShowHistory(false);
+      setTab("editor");
+    } else {
+      toast.error("Запись не найдена", {
+        description: `Не удалось найти ADR по ссылке «${routeId}»`,
+      });
+      navigate("/", { replace: true });
+    }
+  }, [routeId, loading, records, navigate]);
+
+  useEffect(() => {
     localStorage.setItem(LS_UI, JSON.stringify({ tab, selectedId, editing }));
   }, [tab, selectedId, editing]);
 
@@ -448,6 +481,7 @@ const Index = () => {
     setEditing(false);
     setShowHistory(false);
     setTab("editor");
+    navigate(`/adr/${formatAdrCode(r.number)}`);
   };
 
   const startEdit = () => {
@@ -487,6 +521,7 @@ const Index = () => {
     setEditing(true);
     setSelectedId("");
     setTab("editor");
+    navigate("/");
   };
 
   const saveAsTemplate = async () => {
@@ -627,7 +662,10 @@ const Index = () => {
           {TABS.map((t) => (
             <button
               key={t.id}
-              onClick={() => setTab(t.id)}
+              onClick={() => {
+                setTab(t.id);
+                if (t.id === "library") navigate("/");
+              }}
               className={`flex items-center gap-2 px-5 py-3.5 text-sm font-medium border-b-2 transition-all ${
                 tab === t.id
                   ? "border-accent text-accent"
@@ -918,11 +956,7 @@ const Index = () => {
               {records.map((r) => (
                 <button
                   key={r.id}
-                  onClick={() => {
-                    setSelectedId(r.id);
-                    setEditing(false);
-                    setShowHistory(false);
-                  }}
+                  onClick={() => openRecord(r)}
                   className={`w-full text-left rounded-lg border p-3 transition-all ${
                     selectedId === r.id && !editing
                       ? "border-accent/50 bg-card shadow-sm"
@@ -1004,6 +1038,17 @@ const Index = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
+                      <IconBtn
+                        icon={copied ? "Check" : "Link"}
+                        label="Копировать ссылку"
+                        onClick={() => {
+                          const url = `${window.location.origin}/adr/${formatAdrCode(selected.number)}`;
+                          navigator.clipboard.writeText(url);
+                          setCopied(true);
+                          toast.success("Ссылка скопирована");
+                          setTimeout(() => setCopied(false), 2000);
+                        }}
+                      />
                       <IconBtn
                         icon="History"
                         label="История"
