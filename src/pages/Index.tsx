@@ -656,6 +656,78 @@ const Index = () => {
         {/* ── Вкладка: Библиотека ── */}
         {!loading && tab === "library" && (
           <div className="animate-fade-up">
+            {/* Templates section */}
+            <div className="mb-8">
+              <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-4">
+                Шаблоны
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {TEMPLATES.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => startNew()}
+                    className="text-left rounded-xl border border-border bg-card p-4 hover:border-accent/50 hover:-translate-y-0.5 transition-all"
+                  >
+                    <Icon
+                      name={t.icon}
+                      size={20}
+                      className="text-accent mb-3"
+                    />
+                    <div className="text-sm font-medium leading-tight">
+                      {t.name}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground mt-1 leading-tight">
+                      {t.desc}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* User-saved templates */}
+            {userTemplates.length > 0 && (
+              <div className="mb-8">
+                <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-4">
+                  Мои шаблоны
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {userTemplates.map((t) => (
+                    <div
+                      key={t.id}
+                      className="group relative text-left rounded-xl border border-border bg-card p-4 hover:border-accent/50 hover:-translate-y-0.5 transition-all"
+                    >
+                      <button
+                        onClick={() => startNew(t)}
+                        className="text-left w-full"
+                      >
+                        <Icon
+                          name={t.icon}
+                          size={20}
+                          className="text-accent mb-3"
+                        />
+                        <div className="text-sm font-medium leading-tight pr-5">
+                          {t.name}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground mt-1 leading-tight line-clamp-2">
+                          {t.description || t.title}
+                        </div>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteTemplate(t.id);
+                        }}
+                        title="Удалить шаблон"
+                        className="absolute top-3 right-3 w-5 h-5 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all"
+                      >
+                        <Icon name="X" size={13} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-between mb-6">
               <div className="relative">
                 <Icon
@@ -784,78 +856,6 @@ const Index = () => {
                 </button>
               ))}
             </div>
-
-            {/* Templates section */}
-            <div className="mt-10">
-              <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-4">
-                Шаблоны
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {TEMPLATES.map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => startNew()}
-                    className="text-left rounded-xl border border-border bg-card p-4 hover:border-accent/50 hover:-translate-y-0.5 transition-all"
-                  >
-                    <Icon
-                      name={t.icon}
-                      size={20}
-                      className="text-accent mb-3"
-                    />
-                    <div className="text-sm font-medium leading-tight">
-                      {t.name}
-                    </div>
-                    <div className="text-[11px] text-muted-foreground mt-1 leading-tight">
-                      {t.desc}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* User-saved templates */}
-            {userTemplates.length > 0 && (
-              <div className="mt-8">
-                <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-4">
-                  Мои шаблоны
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {userTemplates.map((t) => (
-                    <div
-                      key={t.id}
-                      className="group relative text-left rounded-xl border border-border bg-card p-4 hover:border-accent/50 hover:-translate-y-0.5 transition-all"
-                    >
-                      <button
-                        onClick={() => startNew(t)}
-                        className="text-left w-full"
-                      >
-                        <Icon
-                          name={t.icon}
-                          size={20}
-                          className="text-accent mb-3"
-                        />
-                        <div className="text-sm font-medium leading-tight pr-5">
-                          {t.name}
-                        </div>
-                        <div className="text-[11px] text-muted-foreground mt-1 leading-tight line-clamp-2">
-                          {t.description || t.title}
-                        </div>
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteTemplate(t.id);
-                        }}
-                        title="Удалить шаблон"
-                        className="absolute top-3 right-3 w-5 h-5 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all"
-                      >
-                        <Icon name="X" size={13} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         )}
 
