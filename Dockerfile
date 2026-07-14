@@ -8,9 +8,11 @@ RUN npm ci
 
 COPY . .
 
-# VITE_API_URL подставляется во время сборки через build arg
+# VITE_API_URL / VITE_TEMPLATES_API_URL подставляются во время сборки через build args
 ARG VITE_API_URL=http://localhost:8000
+ARG VITE_TEMPLATES_API_URL=http://localhost:8001
 ENV VITE_API_URL=${VITE_API_URL}
+ENV VITE_TEMPLATES_API_URL=${VITE_TEMPLATES_API_URL}
 
 RUN npm run build
 
